@@ -3,10 +3,13 @@ import ReactDOM from 'react-dom/client'
 import App from './app/App'
 import './styles/index.css'
 
-// Redirect all relative /api requests to VITE_API_URL if configured
+// Redirect all relative /api requests to the configured backend URL when needed.
 const originalFetch = window.fetch;
 window.fetch = function (input, init) {
-  const baseUrl = (import.meta.env.VITE_API_URL as string) || '';
+  const configuredBaseUrl = (import.meta.env.VITE_API_URL as string) || (import.meta.env.VITE_API_TARGET as string) || '';
+  const fallbackBaseUrl = import.meta.env.PROD ? 'https://visiting-backend.onrender.com' : '';
+  const baseUrl = (configuredBaseUrl || fallbackBaseUrl).replace(/\/$/, '');
+
   if (baseUrl) {
     if (typeof input === 'string' && input.startsWith('/api')) {
       return originalFetch(`${baseUrl}${input}`, init);
