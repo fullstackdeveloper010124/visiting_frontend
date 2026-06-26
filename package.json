@@ -211,7 +211,7 @@
     "resize-observer-polyfill": "^1.5.1",
     "resolve": "^1.22.11",
     "resolve-from": "^4.0.0",
-    "rollup": "^4.59.0",
+    "rollup": "^4.62.2",
     "scheduler": "^0.23.2",
     "semver": "^6.3.1",
     "set-cookie-parser": "^2.7.2",
@@ -239,7 +239,6 @@
     "yaml": "^2.8.2"
   },
   "devDependencies": {
-    "@rollup/rollup-win32-x64-msvc": "^4.62.2",
     "@tailwindcss/postcss": "^4.2.2",
     "@tailwindcss/vite": "^4.0.0",
     "@types/node": "^22.5.0",
@@ -247,5 +246,9 @@
     "postcss": "^8.5.8",
     "tailwindcss": "^4.0.0",
     "typescript": "^6.0.2"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.62.2",
+    "@rollup/rollup-win32-x64-msvc": "^4.62.2"
   }
 }
