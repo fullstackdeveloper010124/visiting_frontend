@@ -44,6 +44,7 @@ export function SignupPage({ onSignup }: SignupPageProps) {
           return;
         }
         localStorage.setItem('token', resData.data.token);
+        localStorage.setItem('userRole', resData.data.role);
         onSignup(resData.data.role);
         navigate('/');
       } else {

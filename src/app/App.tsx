@@ -1,38 +1,38 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { AppSidebar } from './components/AppSidebar';
-import { EnhancedUserDashboard } from './components/EnhancedUserDashboard';
-import { AdminDashboard } from './components/AdminDashboard';
-import { InventoryAdminDashboard } from './components/InventoryAdminDashboard';
-import { OrderProcessorDashboard } from './components/OrderProcessorDashboard';
-import { DeliveryPersonDashboard } from './components/DeliveryPersonDashboard';
-import { AccountingDashboard } from './components/AccountingDashboard';
-import { SalespersonDashboard } from './components/SalespersonDashboard';
-import { FinanceContractsDashboard } from './components/FinanceContractsDashboard';
-import { ProcurementDashboard } from './components/ProcurementDashboard';
-import { ITAdministratorDashboard } from './components/ITAdministratorDashboard';
-import { SystemDocumentation } from './components/SystemDocumentation';
-import { AuditLogsPage } from './components/AuditLogsPage';
-import { WorkflowDiagrams } from './components/WorkflowDiagrams';
-import { ProductsPage } from './components/ProductsPage';
-import { CustomizePage } from './components/CustomizePage';
-import { ApproveCardDesignPage } from './components/ApproveCardDesignPage';
-import { LetterheadsCustomizePage } from './components/LetterheadsCustomizePage';
-import { EnvelopesCustomizePage } from './components/EnvelopesCustomizePage';
-import { NotepadsCustomizePage } from './components/NotepadsCustomizePage';
-import { FoldersCustomizePage } from './components/FoldersCustomizePage';
-import { SlipsCustomizePage } from './components/SlipsCustomizePage';
-import { OrdersPage } from './components/OrdersPage';
-import { InventoryPage } from './components/InventoryPage';
-import { AnalyticsPage } from './components/AnalyticsPage';
-import { LoginPage } from './components/LoginPage';
-import { SignupPage } from './components/SignupPage';
-import { UserInventoryPage } from './components/UserInventoryPage';
-import { UpdateProductPage } from './components/UpdateProductPage';
-import { UserProfilePage } from './components/UserProfilePage';
-import { UserAnalyticsPage } from './components/UserAnalyticsPage';
-import { HelpPage } from './components/HelpPage';
-import { SettingsPage } from './components/SettingsPage';
+import { Suspense, lazy, useState, useEffect } from 'react';
+const AppSidebar = lazy(() => import('./components/AppSidebar'));
+const EnhancedUserDashboard = lazy(() => import('./components/EnhancedUserDashboard'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const InventoryAdminDashboard = lazy(() => import('./components/InventoryAdminDashboard'));
+const OrderProcessorDashboard = lazy(() => import('./components/OrderProcessorDashboard'));
+const DeliveryPersonDashboard = lazy(() => import('./components/DeliveryPersonDashboard'));
+const AccountingDashboard = lazy(() => import('./components/AccountingDashboard'));
+const SalespersonDashboard = lazy(() => import('./components/SalespersonDashboard'));
+const FinanceContractsDashboard = lazy(() => import('./components/FinanceContractsDashboard'));
+const ProcurementDashboard = lazy(() => import('./components/ProcurementDashboard'));
+const ITAdministratorDashboard = lazy(() => import('./components/ITAdministratorDashboard'));
+const SystemDocumentation = lazy(() => import('./components/SystemDocumentation'));
+const AuditLogsPage = lazy(() => import('./components/AuditLogsPage'));
+const WorkflowDiagrams = lazy(() => import('./components/WorkflowDiagrams'));
+const ProductsPage = lazy(() => import('./components/ProductsPage'));
+const CustomizePage = lazy(() => import('./components/CustomizePage'));
+const ApproveCardDesignPage = lazy(() => import('./components/ApproveCardDesignPage'));
+const LetterheadsCustomizePage = lazy(() => import('./components/LetterheadsCustomizePage'));
+const EnvelopesCustomizePage = lazy(() => import('./components/EnvelopesCustomizePage'));
+const NotepadsCustomizePage = lazy(() => import('./components/NotepadsCustomizePage'));
+const FoldersCustomizePage = lazy(() => import('./components/FoldersCustomizePage'));
+const SlipsCustomizePage = lazy(() => import('./components/SlipsCustomizePage'));
+const OrdersPage = lazy(() => import('./components/OrdersPage'));
+const InventoryPage = lazy(() => import('./components/InventoryPage'));
+const AnalyticsPage = lazy(() => import('./components/AnalyticsPage'));
+const LoginPage = lazy(() => import('./components/LoginPage'));
+const SignupPage = lazy(() => import('./components/SignupPage'));
+const UserInventoryPage = lazy(() => import('./components/UserInventoryPage'));
+const UpdateProductPage = lazy(() => import('./components/UpdateProductPage'));
+const UserProfilePage = lazy(() => import('./components/UserProfilePage'));
+const UserAnalyticsPage = lazy(() => import('./components/UserAnalyticsPage'));
+const HelpPage = lazy(() => import('./components/HelpPage'));
+const SettingsPage = lazy(() => import('./components/SettingsPage'));
 import { Button } from './components/ui/button';
 import type { UserRole } from './types/roles';
 
@@ -49,6 +49,31 @@ function App() {
         return;
       }
 
+      // If we have a cached role from previous session, use it immediately
+      const cachedRole = (localStorage.getItem('userRole') || null) as UserRole | null;
+      if (cachedRole) {
+        setUserRole(cachedRole);
+        setLoading(false);
+        // continue to verify in background but don't block UI
+        try {
+          const response = await fetch('/api/v1/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const resData = await response.json();
+          if (!response.ok || !resData.success) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRole');
+            setUserRole(null);
+          } else if (resData.data.role !== cachedRole) {
+            setUserRole(resData.data.role);
+            localStorage.setItem('userRole', resData.data.role);
+          }
+        } catch (error) {
+          console.error('Background auth verification failed:', error);
+        }
+        return;
+      }
+
       try {
         const response = await fetch('/api/v1/auth/me', {
           headers: {
@@ -59,6 +84,7 @@ function App() {
 
         if (response.ok && resData.success) {
           setUserRole(resData.data.role);
+          localStorage.setItem('userRole', resData.data.role);
         } else {
           localStorage.removeItem('token');
           setUserRole(null);
@@ -122,7 +148,8 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="flex h-screen overflow-hidden bg-background">
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+        <div className="flex h-screen overflow-hidden bg-background">
         {/* Sidebar */}
         {userRole && (
           <AppSidebar
@@ -134,8 +161,8 @@ function App() {
         )}
 
         {/* Main Content */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <Routes>
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <Routes>
             {/* Auth Routes */}
             <Route path="/login" element={userRole ? <Navigate to="/" /> : <LoginPage onLogin={handleLogin} />} />
             <Route path="/signup" element={userRole ? <Navigate to="/" /> : <SignupPage onSignup={handleLogin} />} />
@@ -263,9 +290,10 @@ function App() {
 
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
+            </Routes>
+          </div>
         </div>
-      </div>
+      </Suspense>
     </BrowserRouter>
   );
 }
