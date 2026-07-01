@@ -247,6 +247,59 @@ export function UserInventoryPage({ onMenuClick }: UserInventoryPageProps) {
     }, 5000);
   };
 
+  const getStepIndex = (status: string) => {
+    switch (status) {
+      case 'Delivered': return 3;
+      case 'Printing': return 2;
+      case 'In Production': return 1;
+      default: return 0;
+    }
+  };
+
+  const renderOrderTracker = (status: string) => {
+    const steps = ['Placed', 'In Production', 'Printing', 'Delivered'];
+    const currentIndex = getStepIndex(status);
+
+    return (
+      <div className="w-full py-4 mb-4 border-b border-dashed border-border/50">
+        <div className="mb-6">
+          <h5 className="font-bold text-primary text-sm uppercase tracking-wider">Order Timeline</h5>
+          <p className="text-muted-foreground text-xs mt-1">Track your order progress</p>
+        </div>
+        <div className="relative flex items-center justify-between w-full max-w-2xl mx-auto px-4">
+          {/* Connecting Line */}
+          <div className="absolute left-6 right-6 top-3 -translate-y-1/2 h-1 bg-muted rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-primary to-secondary transition-all duration-1000 ease-in-out" 
+              style={{ width: `${(currentIndex / (steps.length - 1)) * 100}%` }} 
+            />
+          </div>
+          
+          {/* Steps */}
+          {steps.map((step, idx) => {
+            const isCompleted = idx <= currentIndex;
+            const isActive = idx === currentIndex;
+            return (
+              <div key={step} className="relative flex flex-col items-center gap-2 z-10">
+                <div className={`
+                  flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold border-2
+                  transition-all duration-500
+                  ${isCompleted ? 'bg-primary border-primary text-white shadow-lg shadow-primary/30 scale-110' : 'bg-background border-muted text-muted-foreground'}
+                  ${isActive ? 'ring-4 ring-primary/20' : ''}
+                `}>
+                  {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
+                </div>
+                <span className={`text-[11px] font-bold text-center ${isCompleted ? 'text-foreground' : 'text-muted-foreground'} ${isActive ? 'text-primary' : ''}`}>
+                  {step}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
       <AppHeader onMenuClick={onMenuClick} />
@@ -475,12 +528,14 @@ export function UserInventoryPage({ onMenuClick }: UserInventoryPageProps) {
                     </div>
 
                     {/* EXPANDED SPECIFICATIONS DETAILS */}
-                    {expandedOrderId === order.id && order.customizations && order.customizations.length > 0 && (
+                    {expandedOrderId === order.id && (
                       <div 
                         className="mt-4 pt-4 border-t border-dashed border-border text-xs space-y-4 animate-in fade-in slide-in-from-top-1 duration-200" 
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {order.customizations.map((customization: any, idx: number) => {
+                        {renderOrderTracker(order.status)}
+                        
+                        {order.customizations && order.customizations.length > 0 && order.customizations.map((customization: any, idx: number) => {
                           if (!customization) return null;
                           return (
                             <div key={idx} className="space-y-2">

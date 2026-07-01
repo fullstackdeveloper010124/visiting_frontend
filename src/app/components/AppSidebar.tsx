@@ -150,19 +150,19 @@ export function AppSidebar({ userRole, isOpen, onClose, onLogout }: AppSidebarPr
       {/* Sidebar */}
       <div className={`
         fixed lg:static inset-y-0 left-0 z-50
-        flex h-screen w-64 flex-col border-r border-border bg-card
+        flex h-screen w-64 flex-col border-r border-white/20 dark:border-white/10 bg-white/40 dark:bg-black/40 backdrop-blur-2xl shadow-2xl
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* Logo */}
-        <div className="flex h-16 items-center justify-between gap-3 border-b border-border px-6">
+        <div className="flex h-16 items-center justify-between gap-3 border-b border-white/20 dark:border-white/10 px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <Printer className="h-6 w-6 text-primary-foreground" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary shadow-lg shadow-primary/30">
+              <Printer className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-base font-semibold text-foreground">PrintFlow</h1>
-              <p className="text-xs text-muted-foreground">Enterprise System</p>
+              <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">PrintFlow</h1>
+              <p className="text-xs text-muted-foreground font-medium">Enterprise System</p>
             </div>
           </div>
           
@@ -195,10 +195,10 @@ export function AppSidebar({ userRole, isOpen, onClose, onLogout }: AppSidebarPr
                 key={item.href + item.title}
                 to={item.href}
                 onClick={onClose}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all ${
+                className={`flex items-center gap-3 rounded-xl px-3 py-3 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 ${
                   active
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30 font-bold'
+                    : 'text-muted-foreground hover:bg-white/50 dark:hover:bg-white/10 hover:text-foreground font-medium'
                 }`}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
@@ -214,7 +214,7 @@ export function AppSidebar({ userRole, isOpen, onClose, onLogout }: AppSidebarPr
         </nav>
 
         {/* User Profile */}
-        <div className="border-t border-border p-4 space-y-3">
+        <div className="border-t border-white/20 dark:border-white/10 p-4 space-y-3">
           <div className="flex items-center gap-3">
             <div className={`flex h-10 w-10 items-center justify-center rounded-full ${getRoleColor(userRole)} text-white font-medium text-sm`}>
               {getRoleLabel(userRole).substring(0, 2).toUpperCase()}

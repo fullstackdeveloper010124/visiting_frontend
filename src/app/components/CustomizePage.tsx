@@ -71,6 +71,10 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
   const [adminSheetSize, setAdminSheetSize] = useState('8.5" x 11"');
   const [adminCardsPerSheet, setAdminCardsPerSheet] = useState('10');
   
+  // Admin Checkout settings
+  const [adminPaymentMethods, setAdminPaymentMethods] = useState<string[]>(['paypal', 'credit_card', 'cod', 'bank_transfer']);
+  const [adminDeliveryOptions, setAdminDeliveryOptions] = useState<string[]>(['shipping', 'pickup']);
+  
   // Design state
   const [primaryColor, setPrimaryColor] = useState('#10b981'); // Emerald Green
   const [secondaryColor, setSecondaryColor] = useState('#ffffff'); // White
@@ -164,6 +168,11 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
                 value: match ? match.value : link.placeholder
               };
             }));
+          }
+
+          if (config.checkoutSettings) {
+            setAdminPaymentMethods(config.checkoutSettings.paymentMethods || ['paypal', 'credit_card', 'cod', 'bank_transfer']);
+            setAdminDeliveryOptions(config.checkoutSettings.deliveryOptions || ['shipping', 'pickup']);
           }
         }
       } catch (err) {
@@ -310,7 +319,11 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
           printConfig: adminPrintConfig,
           sheetSize: adminSheetSize,
           cardsPerSheet: adminCardsPerSheet,
-          socialLinks: socialLinks.map(({ id, name, visible, placeholder }) => ({ id, name, visible, placeholder }))
+          socialLinks: socialLinks.map(({ id, name, visible, placeholder }) => ({ id, name, visible, placeholder })),
+          checkoutSettings: {
+            paymentMethods: adminPaymentMethods,
+            deliveryOptions: adminDeliveryOptions
+          }
         })
       });
       const data = await response.json();
@@ -730,6 +743,51 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
                         ))}
                       </div>
                     </div>
+
+                    <div className="space-y-3 pt-4 border-t">
+                      <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Checkout Configuration</Label>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Available Payment Methods</Label>
+                        <div className="flex flex-wrap gap-4">
+                          {['paypal', 'credit_card', 'cod', 'bank_transfer'].map(method => (
+                            <label key={method} className="flex items-center gap-2 text-sm cursor-pointer">
+                              <input 
+                                type="checkbox" 
+                                checked={adminPaymentMethods.includes(method)}
+                                onChange={(e) => {
+                                  if (e.target.checked) setAdminPaymentMethods([...adminPaymentMethods, method]);
+                                  else setAdminPaymentMethods(adminPaymentMethods.filter(m => m !== method));
+                                }}
+                                className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+                              />
+                              <span className="text-foreground">{method === 'paypal' ? 'PayPal' : method === 'credit_card' ? 'Credit Card' : method === 'cod' ? 'Cash on Delivery' : 'Bank Transfer'}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 pt-2">
+                        <Label className="text-sm font-medium">Available Delivery Options</Label>
+                        <div className="flex flex-wrap gap-4">
+                          {['shipping', 'pickup'].map(option => (
+                            <label key={option} className="flex items-center gap-2 text-sm cursor-pointer">
+                              <input 
+                                type="checkbox" 
+                                checked={adminDeliveryOptions.includes(option)}
+                                onChange={(e) => {
+                                  if (e.target.checked) setAdminDeliveryOptions([...adminDeliveryOptions, option]);
+                                  else setAdminDeliveryOptions(adminDeliveryOptions.filter(o => o !== option));
+                                }}
+                                className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+                              />
+                              <span className="text-foreground">{option === 'shipping' ? 'Shipping (Delivery)' : 'Store Pickup'}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 </TabsContent>
               )}

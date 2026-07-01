@@ -13,6 +13,7 @@ import {
   Package, ShoppingCart, Star, Plus, Menu, UploadCloud,
   FileText, CheckCircle, Clock, Send, Save, User, Download, FileUp, Zap, Eye
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface UserDashboardProps {
   onMenuClick?: () => void;
@@ -135,7 +136,7 @@ export function EnhancedUserDashboard({ onMenuClick }: UserDashboardProps) {
           {/* 1. DASHBOARD & ORDERS */}
           <TabsContent value="dashboard" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Card className="bg-gradient-to-br from-card to-muted border-border/50 shadow-sm hover:shadow-md transition-all">
+              <Card className="bg-gradient-to-br from-card to-muted border-border/50 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Active Orders</CardTitle>
                   <Package className="h-4 w-4 text-primary" />
@@ -145,7 +146,7 @@ export function EnhancedUserDashboard({ onMenuClick }: UserDashboardProps) {
                   <p className="text-xs text-muted-foreground mt-1">2 awaiting proofs</p>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-card to-muted border-border/50 shadow-sm hover:shadow-md transition-all">
+              <Card className="bg-gradient-to-br from-card to-muted border-border/50 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Saved Documents</CardTitle>
                   <Save className="h-4 w-4 text-indigo-500" />
@@ -245,7 +246,7 @@ export function EnhancedUserDashboard({ onMenuClick }: UserDashboardProps) {
                     <CardDescription className="text-xs">Last ordered: {item.lastOrdered}</CardDescription>
                   </CardHeader>
                   <CardFooter className="p-4 pt-2">
-                    <Button className="w-full bg-primary/90 hover:bg-primary shadow-sm" onClick={() => alert("Redirecting to checkout for " + item.name)}>
+                    <Button className="w-full bg-gradient-to-r from-primary to-secondary text-white shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all" onClick={() => toast.success(`Added ${item.name} to cart for reorder!`)}>
                       <ShoppingCart className="mr-2 h-4 w-4" /> 1-Click Reorder
                     </Button>
                   </CardFooter>
@@ -303,7 +304,7 @@ export function EnhancedUserDashboard({ onMenuClick }: UserDashboardProps) {
                 </div>
               </CardContent>
               <CardFooter className="bg-muted/20 border-t border-border/50 pt-6">
-                <Button className="w-full md:w-auto h-11 px-8 text-md font-semibold bg-primary text-primary-foreground shadow-md hover:shadow-lg transition-all"><Send className="mr-2 h-5 w-5" /> Submit Files to Print</Button>
+                <Button className="w-full md:w-auto h-11 px-8 text-md font-semibold bg-gradient-to-r from-primary to-secondary text-white shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all" onClick={() => toast.success('Files submitted successfully!')}><Send className="mr-2 h-5 w-5" /> Submit Files to Print</Button>
               </CardFooter>
             </Card>
           </TabsContent>
@@ -340,7 +341,7 @@ export function EnhancedUserDashboard({ onMenuClick }: UserDashboardProps) {
                 </div>
               </CardContent>
               <CardFooter className="bg-muted/20 border-t border-border/50 pt-6">
-                <Button className="h-11 shadow-sm px-6"><FileText className="mr-2 h-4 w-4" /> Request Quote</Button>
+                <Button className="h-11 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all px-6 bg-gradient-to-r from-primary to-secondary text-white border-0" onClick={() => toast.success('Estimate request submitted! We will get back to you shortly.')}><FileText className="mr-2 h-4 w-4" /> Request Quote</Button>
               </CardFooter>
             </Card>
           </TabsContent>
@@ -380,7 +381,7 @@ export function EnhancedUserDashboard({ onMenuClick }: UserDashboardProps) {
                   </div>
 
                   <div className="space-y-3 pt-4 border-t border-border/50">
-                    <Button className="w-full h-12 text-md font-bold bg-success hover:bg-success/90 text-success-foreground shadow-md transition-transform hover:scale-[1.02]">
+                    <Button className="w-full h-12 text-md font-bold bg-success hover:bg-success/90 text-success-foreground shadow-lg transition-all hover:scale-[1.02] hover:-translate-y-1" onClick={() => toast.success('Proof approved! Sending to production.')}>
                       <CheckCircle className="mr-2 h-5 w-5" /> I Approve This Proof for Printing
                     </Button>
                     <Button variant="outline" className="w-full text-muted-foreground border-border/70 hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-colors">
@@ -477,7 +478,7 @@ export function EnhancedUserDashboard({ onMenuClick }: UserDashboardProps) {
                 </div>
               </CardContent>
               <CardFooter className="bg-muted/20 border-t border-border/50 pt-6 justify-end">
-                <Button className="shadow-sm"><Save className="mr-2 h-4 w-4" /> Save Changes</Button>
+                <Button className="shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all bg-gradient-to-r from-primary to-secondary text-white border-0" onClick={() => toast.success('Account changes saved successfully!')}><Save className="mr-2 h-4 w-4" /> Save Changes</Button>
               </CardFooter>
             </Card>
           </TabsContent>

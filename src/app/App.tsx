@@ -35,6 +35,7 @@ import { HelpPage } from './components/HelpPage';
 import { SettingsPage } from './components/SettingsPage';
 import { Button } from './components/ui/button';
 import type { UserRole } from './types/roles';
+import { Toaster } from 'sonner';
 
 function App() {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
@@ -122,6 +123,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <Toaster position="top-right" richColors />
       <div className="flex h-screen overflow-hidden bg-background">
         {/* Sidebar */}
         {userRole && (

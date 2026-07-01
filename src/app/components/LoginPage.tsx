@@ -7,6 +7,8 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { UserRole } from '../types/roles';
 import { Package } from 'lucide-react';
+import { toast } from 'sonner';
+import { motion } from 'framer-motion';
 
 interface LoginPageProps {
   onLogin: (role: UserRole) => void;
@@ -38,6 +40,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       if (response.ok && resData.success) {
         localStorage.setItem('token', resData.data.token);
         onLogin(resData.data.role);
+        toast.success(`Welcome back! Successfully logged in.`);
         const params = new URLSearchParams(window.location.search);
         const redirect = params.get('redirect');
         if (redirect) {
@@ -47,24 +50,32 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         }
       } else {
         setError(resData.error || 'Invalid email or password.');
+        toast.error(resData.error || 'Invalid email or password.');
       }
     } catch (err) {
       console.error('Login error:', err);
       setError('Something went wrong. Please check if the backend server is running.');
+      toast.error('Something went wrong. Server might be down.');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4">
-      <Card className="w-full max-w-md shadow-lg">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="w-full max-w-md"
+      >
+      <Card className="w-full shadow-2xl bg-white/60 dark:bg-black/60 backdrop-blur-xl border-white/20 dark:border-white/10">
         <CardHeader className="space-y-1 flex flex-col items-center">
-          <div className="h-12 w-12 bg-primary rounded-lg flex items-center justify-center mb-4">
-            <Package className="h-8 w-8 text-primary-foreground" />
+          <div className="h-14 w-14 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-primary/30">
+            <Package className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold">Login to Your Account</CardTitle>
-          <CardDescription>Enter your credentials to access your dashboard</CardDescription>
+          <CardTitle className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">Welcome Back</CardTitle>
+          <CardDescription className="text-center font-medium">Enter your credentials to access your dashboard</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -97,18 +108,19 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={submitting}>
+            <Button type="submit" className="w-full h-12 text-lg shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 bg-gradient-to-r from-primary to-secondary text-white border-0" disabled={submitting}>
               {submitting ? 'Signing In...' : 'Sign In'}
             </Button>
             <div className="text-sm text-center text-muted-foreground">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-primary hover:underline font-medium">
+              <Link to="/signup" className="text-primary hover:text-secondary hover:underline font-bold transition-colors">
                 Create an account
               </Link>
             </div>
           </CardFooter>
         </form>
       </Card>
+      </motion.div>
     </div>
   );
 }

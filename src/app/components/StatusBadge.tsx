@@ -42,7 +42,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
   };
 
   return (
-    <Badge variant="outline" className={`${getStatusStyles()} ${className}`}>
+    <Badge variant="outline" className={`${getStatusStyles()} ${className || ''}`.trim()}>
       {getStatusLabel()}
     </Badge>
   );
