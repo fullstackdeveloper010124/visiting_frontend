@@ -39,6 +39,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
       if (response.ok && resData.success) {
         localStorage.setItem('token', resData.data.token);
+        localStorage.setItem('userRole', resData.data.role);
         onLogin(resData.data.role);
         toast.success(`Welcome back! Successfully logged in.`);
         const params = new URLSearchParams(window.location.search);

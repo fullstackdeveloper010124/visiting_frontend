@@ -47,6 +47,7 @@ export function SignupPage({ onSignup }: SignupPageProps) {
           return;
         }
         localStorage.setItem('token', resData.data.token);
+        localStorage.setItem('userRole', resData.data.role);
         onSignup(resData.data.role);
         toast.success('Account created successfully!');
         navigate('/');
