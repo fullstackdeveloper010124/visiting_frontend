@@ -46,6 +46,8 @@ function App() {
     const checkAuth = async () => {
       const token = localStorage.getItem('token');
       if (!token) {
+        localStorage.removeItem('userRole');
+        setUserRole(null);
         setLoading(false);
         return;
       }
