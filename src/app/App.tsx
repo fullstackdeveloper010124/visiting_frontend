@@ -1,38 +1,38 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Suspense, lazy, useState, useEffect } from 'react';
-const AppSidebar = lazy(() => import('./components/AppSidebar'));
-const EnhancedUserDashboard = lazy(() => import('./components/EnhancedUserDashboard'));
-const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
-const InventoryAdminDashboard = lazy(() => import('./components/InventoryAdminDashboard'));
-const OrderProcessorDashboard = lazy(() => import('./components/OrderProcessorDashboard'));
-const DeliveryPersonDashboard = lazy(() => import('./components/DeliveryPersonDashboard'));
-const AccountingDashboard = lazy(() => import('./components/AccountingDashboard'));
-const SalespersonDashboard = lazy(() => import('./components/SalespersonDashboard'));
-const FinanceContractsDashboard = lazy(() => import('./components/FinanceContractsDashboard'));
-const ProcurementDashboard = lazy(() => import('./components/ProcurementDashboard'));
-const ITAdministratorDashboard = lazy(() => import('./components/ITAdministratorDashboard'));
-const SystemDocumentation = lazy(() => import('./components/SystemDocumentation'));
-const AuditLogsPage = lazy(() => import('./components/AuditLogsPage'));
-const WorkflowDiagrams = lazy(() => import('./components/WorkflowDiagrams'));
-const ProductsPage = lazy(() => import('./components/ProductsPage'));
-const CustomizePage = lazy(() => import('./components/CustomizePage'));
-const ApproveCardDesignPage = lazy(() => import('./components/ApproveCardDesignPage'));
-const LetterheadsCustomizePage = lazy(() => import('./components/LetterheadsCustomizePage'));
-const EnvelopesCustomizePage = lazy(() => import('./components/EnvelopesCustomizePage'));
-const NotepadsCustomizePage = lazy(() => import('./components/NotepadsCustomizePage'));
-const FoldersCustomizePage = lazy(() => import('./components/FoldersCustomizePage'));
-const SlipsCustomizePage = lazy(() => import('./components/SlipsCustomizePage'));
-const OrdersPage = lazy(() => import('./components/OrdersPage'));
-const InventoryPage = lazy(() => import('./components/InventoryPage'));
-const AnalyticsPage = lazy(() => import('./components/AnalyticsPage'));
-const LoginPage = lazy(() => import('./components/LoginPage'));
-const SignupPage = lazy(() => import('./components/SignupPage'));
-const UserInventoryPage = lazy(() => import('./components/UserInventoryPage'));
-const UpdateProductPage = lazy(() => import('./components/UpdateProductPage'));
-const UserProfilePage = lazy(() => import('./components/UserProfilePage'));
-const UserAnalyticsPage = lazy(() => import('./components/UserAnalyticsPage'));
-const HelpPage = lazy(() => import('./components/HelpPage'));
-const SettingsPage = lazy(() => import('./components/SettingsPage'));
+const AppSidebar = lazy(() => import('./components/AppSidebar').then((mod) => ({ default: mod.AppSidebar })));
+const EnhancedUserDashboard = lazy(() => import('./components/EnhancedUserDashboard').then((mod) => ({ default: mod.EnhancedUserDashboard })));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard').then((mod) => ({ default: mod.AdminDashboard })));
+const InventoryAdminDashboard = lazy(() => import('./components/InventoryAdminDashboard').then((mod) => ({ default: mod.InventoryAdminDashboard })));
+const OrderProcessorDashboard = lazy(() => import('./components/OrderProcessorDashboard').then((mod) => ({ default: mod.OrderProcessorDashboard })));
+const DeliveryPersonDashboard = lazy(() => import('./components/DeliveryPersonDashboard').then((mod) => ({ default: mod.DeliveryPersonDashboard })));
+const AccountingDashboard = lazy(() => import('./components/AccountingDashboard').then((mod) => ({ default: mod.AccountingDashboard })));
+const SalespersonDashboard = lazy(() => import('./components/SalespersonDashboard').then((mod) => ({ default: mod.SalespersonDashboard })));
+const FinanceContractsDashboard = lazy(() => import('./components/FinanceContractsDashboard').then((mod) => ({ default: mod.FinanceContractsDashboard })));
+const ProcurementDashboard = lazy(() => import('./components/ProcurementDashboard').then((mod) => ({ default: mod.ProcurementDashboard })));
+const ITAdministratorDashboard = lazy(() => import('./components/ITAdministratorDashboard').then((mod) => ({ default: mod.ITAdministratorDashboard })));
+const SystemDocumentation = lazy(() => import('./components/SystemDocumentation').then((mod) => ({ default: mod.SystemDocumentation })));
+const AuditLogsPage = lazy(() => import('./components/AuditLogsPage').then((mod) => ({ default: mod.AuditLogsPage })));
+const WorkflowDiagrams = lazy(() => import('./components/WorkflowDiagrams').then((mod) => ({ default: mod.WorkflowDiagrams })));
+const ProductsPage = lazy(() => import('./components/ProductsPage').then((mod) => ({ default: mod.ProductsPage })));
+const CustomizePage = lazy(() => import('./components/CustomizePage').then((mod) => ({ default: mod.CustomizePage })));
+const ApproveCardDesignPage = lazy(() => import('./components/ApproveCardDesignPage').then((mod) => ({ default: mod.ApproveCardDesignPage })));
+const LetterheadsCustomizePage = lazy(() => import('./components/LetterheadsCustomizePage').then((mod) => ({ default: mod.LetterheadsCustomizePage })));
+const EnvelopesCustomizePage = lazy(() => import('./components/EnvelopesCustomizePage').then((mod) => ({ default: mod.EnvelopesCustomizePage })));
+const NotepadsCustomizePage = lazy(() => import('./components/NotepadsCustomizePage').then((mod) => ({ default: mod.NotepadsCustomizePage })));
+const FoldersCustomizePage = lazy(() => import('./components/FoldersCustomizePage').then((mod) => ({ default: mod.FoldersCustomizePage })));
+const SlipsCustomizePage = lazy(() => import('./components/SlipsCustomizePage').then((mod) => ({ default: mod.SlipsCustomizePage })));
+const OrdersPage = lazy(() => import('./components/OrdersPage').then((mod) => ({ default: mod.OrdersPage })));
+const InventoryPage = lazy(() => import('./components/InventoryPage').then((mod) => ({ default: mod.InventoryPage })));
+const AnalyticsPage = lazy(() => import('./components/AnalyticsPage').then((mod) => ({ default: mod.AnalyticsPage })));
+const LoginPage = lazy(() => import('./components/LoginPage').then((mod) => ({ default: mod.LoginPage })));
+const SignupPage = lazy(() => import('./components/SignupPage').then((mod) => ({ default: mod.SignupPage })));
+const UserInventoryPage = lazy(() => import('./components/UserInventoryPage').then((mod) => ({ default: mod.UserInventoryPage })));
+const UpdateProductPage = lazy(() => import('./components/UpdateProductPage').then((mod) => ({ default: mod.UpdateProductPage })));
+const UserProfilePage = lazy(() => import('./components/UserProfilePage').then((mod) => ({ default: mod.UserProfilePage })));
+const UserAnalyticsPage = lazy(() => import('./components/UserAnalyticsPage').then((mod) => ({ default: mod.UserAnalyticsPage })));
+const HelpPage = lazy(() => import('./components/HelpPage').then((mod) => ({ default: mod.HelpPage })));
+const SettingsPage = lazy(() => import('./components/SettingsPage').then((mod) => ({ default: mod.SettingsPage })));
 import { Button } from './components/ui/button';
 import type { UserRole } from './types/roles';
 import { Toaster } from 'sonner';
@@ -149,16 +149,17 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="flex h-screen overflow-hidden bg-background">
-        {/* Sidebar */}
-        {userRole && (
-          <AppSidebar
-            userRole={userRole}
-            isOpen={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-            onLogout={handleLogout}
-          />
-        )}
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">Loading...</div>}>
+        <div className="flex h-screen overflow-hidden bg-background">
+          {/* Sidebar */}
+          {userRole && (
+            <AppSidebar
+              userRole={userRole}
+              isOpen={sidebarOpen}
+              onClose={() => setSidebarOpen(false)}
+              onLogout={handleLogout}
+            />
+          )}
 
         {/* Main Content */}
           <div className="flex-1 overflow-hidden flex flex-col">
