@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "postinstall": "npm install --include=dev --no-save",
     "lint": "eslint .",
     "preview": "vite preview",
     "fix-windows": "npm install -D vite@^6.0.0 @rollup/rollup-win32-x64-msvc lightningcss-win32-x64-msvc --legacy-peer-deps && npm run dev"
@@ -243,6 +244,7 @@
     "autoprefixer": "^10.4.27",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.0.0",
+    "@tailwindcss/postcss": "^4.3.2",
     "typescript": "^6.0.2"
   }
 }
