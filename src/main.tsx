@@ -3,10 +3,14 @@ import ReactDOM from 'react-dom/client'
 import App from './app/App'
 import './styles/index.css'
 
-// Redirect all relative /api requests to VITE_API_URL if configured
+// Redirect all relative /api requests to VITE_API_URL if configured.
+// For production deployment, fall back to the hosted backend URL if VITE_API_URL is not set.
 const originalFetch = window.fetch;
 window.fetch = function (input, init) {
-  const baseUrl = (import.meta.env.VITE_API_URL as string) || '';
+  const envApiUrl = (import.meta.env.VITE_API_URL as string) || '';
+  const defaultProdApiUrl = import.meta.env.PROD ? 'https://visiting-backend.onrender.com' : '';
+  const baseUrl = envApiUrl || defaultProdApiUrl;
+
   if (baseUrl) {
     if (typeof input === 'string' && input.startsWith('/api')) {
       return originalFetch(`${baseUrl}${input}`, init);
