@@ -103,7 +103,7 @@ export function UserDashboard({ onMenuClick }: UserDashboardProps) {
                     <CardTitle>Recent Orders</CardTitle>
                     <CardDescription>Your latest stationery orders</CardDescription>
                   </div>
-                  <Link to="/orders">
+                  <Link to="/user-inventory">
                     <Button variant="ghost" size="sm">
                       View All
                       <ArrowRight className="ml-2 h-4 w-4" />
@@ -166,7 +166,7 @@ export function UserDashboard({ onMenuClick }: UserDashboardProps) {
                   </Button>
                 </Link>
 
-                <Link to="/orders" className="block">
+                <Link to="/user-inventory" className="block">
                   <Button variant="outline" className="w-full justify-start h-auto py-4" size="lg">
                     <Clock className="mr-3 h-5 w-5" />
                     <div className="text-left">

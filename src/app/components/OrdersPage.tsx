@@ -2,6 +2,7 @@ import { AppHeader } from './AppHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { Label } from './ui/label';
 import { Package, Clock, CheckCircle, Truck, MapPin } from 'lucide-react';
 import { StatusBadge, OrderStatus } from './StatusBadge';
 import { useState, useEffect } from 'react';
@@ -9,12 +10,16 @@ import { useLocation } from 'react-router-dom';
 
 interface Order {
   id: string;
+  dbId: string;
   product: string;
   quantity: number;
   total: number;
   status: OrderStatus;
+  paymentStatus: 'pending' | 'paid' | 'refunded';
+  allowedPaymentMethod: 'none' | 'paypal' | 'credit_card' | 'cod' | 'bank_transfer';
   date: string;
   estimatedDelivery: string;
+  deliveryNotes: string;
 }
 
 interface TimelineStep {
@@ -26,9 +31,10 @@ interface TimelineStep {
 
 interface OrdersPageProps {
   onMenuClick?: () => void;
+  userRole?: string;
 }
 
-export function OrdersPage({ onMenuClick }: OrdersPageProps) {
+export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const location = useLocation();
 
@@ -36,32 +42,145 @@ export function OrdersPage({ onMenuClick }: OrdersPageProps) {
   const [orders, setOrders] = useState<Order[]>([
     { 
       id: 'ORD-2026-001', 
+      dbId: 'mock1',
       product: 'Premium Business Cards', 
       quantity: 500, 
       total: 149.99, 
       status: 'delivered', 
+      paymentStatus: 'paid',
+      allowedPaymentMethod: 'paypal',
       date: '2026-06-01',
-      estimatedDelivery: '2026-06-08'
+      estimatedDelivery: '2026-06-08',
+      deliveryNotes: ''
     },
     { 
       id: 'ORD-2026-002', 
+      dbId: 'mock2',
       product: 'Corporate Letterheads', 
       quantity: 1000, 
       total: 299.99, 
       status: 'printing', 
+      paymentStatus: 'paid',
+      allowedPaymentMethod: 'credit_card',
       date: '2026-06-02',
-      estimatedDelivery: '2026-06-09'
+      estimatedDelivery: '2026-06-09',
+      deliveryNotes: ''
     },
     { 
       id: 'ORD-2026-003', 
+      dbId: 'mock3',
       product: 'Envelopes (Standard)', 
       quantity: 500, 
       total: 89.99, 
       status: 'processing', 
+      paymentStatus: 'pending',
+      allowedPaymentMethod: 'none',
       date: '2026-05-28',
-      estimatedDelivery: '2026-06-04'
+      estimatedDelivery: '2026-06-04',
+      deliveryNotes: ''
     },
   ]);
+
+  const selectedOrderData = orders.find(o => o.id === selectedOrder);
+
+  const [globalConfig, setGlobalConfig] = useState<any>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('paypal');
+  const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+
+  // Fetch customize config
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch('/api/v1/customize-config');
+        const resData = await response.json();
+        if (response.ok && resData.success) {
+          setGlobalConfig(resData.data);
+        }
+      } catch (err) {
+        console.error('Failed to load customize config:', err);
+      }
+    };
+    fetchConfig();
+  }, []);
+
+  const handlePayNow = async (orderId: string, paymentMethod: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setPaying(true);
+    setPayError(null);
+
+    try {
+      const response = await fetch(`/api/v1/orders/${orderId}/pay`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ paymentMethod })
+      });
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        setOrders(prev => prev.map(o => o.dbId === orderId ? { ...o, paymentStatus: 'paid' } : o));
+        setPayingOrderId(null);
+      } else {
+        setPayError(resData.error || 'Payment failed.');
+      }
+    } catch (err) {
+      console.error('Payment error:', err);
+      setPayError('Connection error. Failed to complete payment.');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const [adminSetPaymentMethod, setAdminSetPaymentMethod] = useState('none');
+  const [savingPaymentOption, setSavingPaymentOption] = useState(false);
+  const [adminSaveSuccess, setAdminSaveSuccess] = useState(false);
+  const [adminSaveError, setAdminSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedOrderData) {
+      setAdminSetPaymentMethod(selectedOrderData.allowedPaymentMethod || 'none');
+      setAdminSaveSuccess(false);
+      setAdminSaveError(null);
+    }
+  }, [selectedOrder, selectedOrderData]);
+
+  const handleSavePaymentOption = async () => {
+    if (!selectedOrderData) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setSavingPaymentOption(true);
+    setAdminSaveSuccess(false);
+    setAdminSaveError(null);
+
+    try {
+      const response = await fetch(`/api/v1/orders/${selectedOrderData.dbId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          allowedPaymentMethod: adminSetPaymentMethod
+        })
+      });
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        setAdminSaveSuccess(true);
+        setOrders(prev => prev.map(o => o.dbId === selectedOrderData.dbId ? { ...o, allowedPaymentMethod: adminSetPaymentMethod as Order['allowedPaymentMethod'] } : o));
+      } else {
+        setAdminSaveError(resData.error || 'Failed to save payment option.');
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+      setAdminSaveError('Network error. Failed to save.');
+    } finally {
+      setSavingPaymentOption(false);
+    }
+  };
 
   // Fetch live order list from API
   useEffect(() => {
@@ -97,12 +216,16 @@ export function OrdersPage({ onMenuClick }: OrdersPageProps) {
 
               return {
                 id: order.orderNumber || order._id,
+                dbId: order._id,
                 product: names,
                 quantity: quantitySum,
                 total: order.total,
                 status,
+                paymentStatus: order.paymentStatus || 'pending',
+                allowedPaymentMethod: order.allowedPaymentMethod || 'none',
                 date: order.createdAt ? order.createdAt.slice(0, 10) : 'N/A',
-                estimatedDelivery: estDelivery.toISOString().slice(0, 10)
+                estimatedDelivery: estDelivery.toISOString().slice(0, 10),
+                deliveryNotes: order.delivery?.notes || ''
               };
             });
 
@@ -164,8 +287,6 @@ export function OrdersPage({ onMenuClick }: OrdersPageProps) {
       };
     });
   };
-
-  const selectedOrderData = orders.find(o => o.id === selectedOrder);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -250,7 +371,117 @@ export function OrdersPage({ onMenuClick }: OrdersPageProps) {
                           <p className="text-xs text-muted-foreground mb-1">Total Amount</p>
                           <p className="font-medium text-foreground text-sm">${selectedOrderData.total}</p>
                         </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Payment Status</p>
+                          <Badge className={selectedOrderData.paymentStatus === 'paid' ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-600 border border-amber-500/30'}>
+                            {selectedOrderData.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
+                          </Badge>
+                        </div>
+                        {/* Admin Payment Option Assignment Selector */}
+                        {userRole && ['super_user', 'accounting', 'order_processor'].includes(userRole) && selectedOrderData.paymentStatus === 'pending' && (
+                          <div className="col-span-2 mt-2 p-3 bg-primary/5 rounded-lg border border-primary/20 space-y-2">
+                            <Label className="text-[10px] font-bold text-foreground">Set Allowed Payment Method for User</Label>
+                            <div className="flex gap-2">
+                              <select 
+                                value={adminSetPaymentMethod} 
+                                onChange={e => setAdminSetPaymentMethod(e.target.value)}
+                                className="flex-1 rounded-md border border-input bg-background px-2.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              >
+                                <option value="none">Pending Admin Assignment (None)</option>
+                                <option value="paypal">PayPal</option>
+                                <option value="credit_card">Stripe / Credit Card</option>
+                                <option value="cod">Cash on Delivery (COD)</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                              </select>
+                              <Button 
+                                className="bg-primary text-white text-[10px] px-3 font-semibold h-7.5 py-1"
+                                onClick={handleSavePaymentOption}
+                                disabled={savingPaymentOption}
+                              >
+                                {savingPaymentOption ? 'Saving...' : 'Save'}
+                              </Button>
+                            </div>
+                            {adminSaveSuccess && <p className="text-[10px] text-emerald-600 font-medium">Payment option updated successfully!</p>}
+                            {adminSaveError && <p className="text-[10px] text-destructive">{adminSaveError}</p>}
+                          </div>
+                        )}
                       </div>
+
+                      {/* Pay Now Section */}
+                      {selectedOrderData.paymentStatus === 'pending' && (
+                        selectedOrderData.allowedPaymentMethod === 'none' ? (
+                          <div className="mt-4 pt-4 border-t border-border space-y-2 p-3 bg-amber-500/5 rounded-lg border border-amber-500/10">
+                            <p className="text-xs font-bold text-amber-600 flex items-center gap-1.5">
+                              <Clock className="h-4 w-4 text-amber-500" /> Payment Selection Pending
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">The Administrator has not yet assigned a payment method for your order. Once the Administrator configures your payment options, you will be able to complete payment here.</p>
+                          </div>
+                        ) : (
+                          <div className="mt-4 pt-4 border-t border-border space-y-3 p-3 bg-primary/5 rounded-lg border border-primary/20 animate-in fade-in duration-200">
+                            <p className="text-xs font-bold text-foreground">Complete Payment Now</p>
+                            <div className="p-2.5 bg-background rounded-md border border-border space-y-1.5">
+                              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Assigned Payment Method</p>
+                              <p className="text-xs font-semibold text-foreground flex items-center gap-2">
+                                {selectedOrderData.allowedPaymentMethod === 'paypal' && 'PayPal Sandbox'}
+                                {selectedOrderData.allowedPaymentMethod === 'credit_card' && 'Credit Card'}
+                                {selectedOrderData.allowedPaymentMethod === 'cod' && 'Cash on Delivery (COD)'}
+                                {selectedOrderData.allowedPaymentMethod === 'bank_transfer' && 'Bank Transfer'}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground leading-normal">
+                                {selectedOrderData.allowedPaymentMethod === 'paypal' && 'Simulated express checkout sandbox payment.'}
+                                {selectedOrderData.allowedPaymentMethod === 'credit_card' && 'Secure instant credit card approval.'}
+                                {selectedOrderData.allowedPaymentMethod === 'cod' && 'You will pay in cash upon receiving the order.'}
+                                {selectedOrderData.allowedPaymentMethod === 'bank_transfer' && 'Wire transfer details will be shown.'}
+                              </p>
+                            </div>
+
+                            {payingOrderId === selectedOrderData.dbId ? (
+                              <div className="space-y-2">
+                                {selectedOrderData.allowedPaymentMethod === 'credit_card' && (
+                                  <div className="p-2 bg-muted/40 rounded border border-border space-y-2 mb-2">
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px]">Name on Card</Label>
+                                      <input className="w-full rounded-md border border-input bg-background px-2.5 py-1 text-xs focus:outline-none" placeholder="John Doe" />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-[10px]">Card Number</Label>
+                                      <input className="w-full rounded-md border border-input bg-background px-2.5 py-1 text-xs focus:outline-none" placeholder="1234 5678 1234 5678" />
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {payError && <p className="text-[10px] text-destructive">{payError}</p>}
+                                
+                                <div className="flex gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    className="w-1/2 text-[10px] py-1.5 h-auto"
+                                    onClick={() => setPayingOrderId(null)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button 
+                                    className="w-1/2 text-[10px] py-1.5 h-auto bg-primary text-white font-bold"
+                                    disabled={paying}
+                                    onClick={() => handlePayNow(selectedOrderData.dbId, selectedOrderData.allowedPaymentMethod)}
+                                  >
+                                    {paying ? 'Processing...' : 'Confirm & Pay'}
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <Button 
+                                className="w-full bg-primary hover:bg-primary/95 text-white font-semibold py-2 text-xs"
+                                onClick={() => {
+                                  setPayingOrderId(selectedOrderData.dbId);
+                                }}
+                              >
+                                Pay Now
+                              </Button>
+                            )}
+                          </div>
+                        )
+                      )}
 
                       <div className="pt-4 border-t border-border">
                         <div className="flex items-center gap-2 mb-2">
@@ -263,13 +494,11 @@ export function OrdersPage({ onMenuClick }: OrdersPageProps) {
                       <div className="pt-4 border-t border-border">
                         <div className="flex items-center gap-2 mb-2">
                           <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <p className="text-sm font-medium text-foreground">Delivery Address</p>
+                          <p className="text-sm font-medium text-foreground">Delivery / Pickup Details</p>
                         </div>
-                        <p className="text-sm text-muted-foreground ml-6">
-                          123 Business Street<br />
-                          Suite 456<br />
-                          New York, NY 10001
-                        </p>
+                        <pre className="text-sm text-muted-foreground ml-6 font-sans whitespace-pre-wrap">
+                          {selectedOrderData.deliveryNotes || 'No delivery details provided.'}
+                        </pre>
                       </div>
                     </CardContent>
                   </Card>

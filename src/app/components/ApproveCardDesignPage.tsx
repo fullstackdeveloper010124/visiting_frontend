@@ -19,6 +19,8 @@ export function ApproveCardDesignPage() {
   const [approved, setApproved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [design, setDesign] = useState<any>(null);
+  const [globalConfig, setGlobalConfig] = useState<any>(null);
+  const [deliveryMethod, setDeliveryMethod] = useState('shipping');
 
   // Products state for matching product SKU and ID
   const [products, setProducts] = useState<any[]>([]);
@@ -35,7 +37,7 @@ export function ApproveCardDesignPage() {
   const [shippingCountry, setShippingCountry] = useState('United States');
 
   // Payment Form State
-  const [paymentMethod, setPaymentMethod] = useState('paypal');
+  const [paymentMethod, setPaymentMethod] = useState('pending_admin');
   const [cardName, setCardName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
@@ -45,8 +47,7 @@ export function ApproveCardDesignPage() {
   const [paypalModalOpen, setPaypalModalOpen] = useState(false);
   const [paypalPaying, setPaypalPaying] = useState(false);
 
-  // Computed address validation
-  const isAddressComplete = !!(
+  const isAddressComplete = deliveryMethod === 'pickup' ? true : !!(
     shippingName.trim() &&
     shippingPhone.trim() &&
     shippingAddress1.trim() &&
@@ -76,6 +77,34 @@ export function ApproveCardDesignPage() {
       }
     };
     fetchProducts();
+  }, []);
+
+  // Fetch Global config to get checkout settings (Payment methods & Delivery options)
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const response = await fetch('/api/v1/customize-config');
+        const resData = await response.json();
+        if (response.ok && resData.success) {
+          setGlobalConfig(resData.data);
+          
+          // Set initial payment method to first available
+          const methods = resData.data?.checkoutSettings?.paymentMethods || ['paypal'];
+          if (methods.length > 0 && !methods.includes('paypal')) {
+            setPaymentMethod(methods[0]);
+          }
+
+          // Set initial delivery method to first available
+          const deliveryOpts = resData.data?.checkoutSettings?.deliveryOptions || ['shipping'];
+          if (deliveryOpts.length > 0 && !deliveryOpts.includes('shipping')) {
+            setDeliveryMethod(deliveryOpts[0]);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load global config:', err);
+      }
+    };
+    loadConfig();
   }, []);
 
   // Fetch logged-in user profile to prefill shipping contact
@@ -217,7 +246,15 @@ export function ApproveCardDesignPage() {
       paymentStatus: payStatus,
       delivery: {
         status: 'pending',
-        notes: `Shipping Address:
+        notes: deliveryMethod === 'pickup' 
+          ? `Store Pickup
+Name: ${shippingName}
+Phone: ${shippingPhone}
+
+Payment Method: ${method.toUpperCase()}
+${method === 'credit_card' ? `Cardholder: ${cardName}\nCard: **** **** **** ${cardNumber.slice(-4)}` : ''}
+${method === 'paypal' ? 'Paid via Simulated PayPal Checkout (Sandbox)' : ''}`
+          : `Shipping Address:
 Name: ${shippingName}
 Phone: ${shippingPhone}
 Address: ${shippingAddress1} ${shippingAddress2 ? `, ${shippingAddress2}` : ''}
@@ -250,7 +287,7 @@ ${method === 'paypal' ? 'Paid via Simulated PayPal Checkout (Sandbox)' : ''}`
           setCountdown(count);
           if (count <= 0) {
             clearInterval(timer);
-            navigate('/orders');
+            navigate('/user-inventory');
           }
         }, 1000);
       } else {
@@ -451,8 +488,8 @@ ${method === 'paypal' ? 'Paid via Simulated PayPal Checkout (Sandbox)' : ''}`
                   <p className="text-xs text-muted-foreground animate-pulse mt-2">
                     Redirecting to dashboard in {countdown} seconds...
                   </p>
-                  <Button className="w-full mt-2" onClick={() => navigate('/orders')}>
-                    Go to My Orders
+                  <Button className="w-full mt-2" onClick={() => navigate('/user-inventory')}>
+                    Go to My Inventory
                   </Button>
                 </div>
               ) : (
@@ -545,42 +582,75 @@ ${method === 'paypal' ? 'Paid via Simulated PayPal Checkout (Sandbox)' : ''}`
                         <div className="space-y-4 animate-in fade-in duration-200">
                           <div className="space-y-3">
                             <h4 className="text-sm font-bold flex items-center gap-2 text-foreground">
-                              <MapPin className="h-4 w-4 text-primary" /> Shipping Address
+                              <MapPin className="h-4 w-4 text-primary" /> Delivery Details
                             </h4>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="space-y-1 col-span-2">
-                                <Label htmlFor="shippingName" className="text-xs">Full Name</Label>
-                                <Input id="shippingName" required value={shippingName} onChange={e => setShippingName(e.target.value)} placeholder="John Doe" />
-                              </div>
-                              <div className="space-y-1 col-span-2">
-                                <Label htmlFor="shippingPhone" className="text-xs">Phone Number</Label>
-                                <Input id="shippingPhone" required value={shippingPhone} onChange={e => setShippingPhone(e.target.value)} placeholder="+1 (555) 123-4567" />
-                              </div>
-                              <div className="space-y-1 col-span-2">
-                                <Label htmlFor="shippingAddress1" className="text-xs">Address Line 1</Label>
-                                <Input id="shippingAddress1" required value={shippingAddress1} onChange={e => setShippingAddress1(e.target.value)} placeholder="123 Printing Lane" />
-                              </div>
-                              <div className="space-y-1 col-span-2">
-                                <Label htmlFor="shippingAddress2" className="text-xs">Address Line 2 (Optional)</Label>
-                                <Input id="shippingAddress2" value={shippingAddress2} onChange={e => setShippingAddress2(e.target.value)} placeholder="Suite 100" />
-                              </div>
-                              <div className="space-y-1">
-                                <Label htmlFor="shippingCity" className="text-xs">City</Label>
-                                <Input id="shippingCity" required value={shippingCity} onChange={e => setShippingCity(e.target.value)} placeholder="Creative City" />
-                              </div>
-                              <div className="space-y-1">
-                                <Label htmlFor="shippingState" className="text-xs">State / Prov</Label>
-                                <Input id="shippingState" required value={shippingState} onChange={e => setShippingState(e.target.value)} placeholder="CA" />
-                              </div>
-                              <div className="space-y-1">
-                                <Label htmlFor="shippingZip" className="text-xs">ZIP / Postal</Label>
-                                <Input id="shippingZip" required value={shippingZip} onChange={e => setShippingZip(e.target.value)} placeholder="90210" />
-                              </div>
-                              <div className="space-y-1">
-                                <Label htmlFor="shippingCountry" className="text-xs">Country</Label>
-                                <Input id="shippingCountry" required value={shippingCountry} onChange={e => setShippingCountry(e.target.value)} placeholder="United States" />
-                              </div>
+
+                            {/* Delivery Options Selector */}
+                            <div className="flex gap-4 p-3 bg-muted/40 rounded-lg border border-border">
+                              {(globalConfig?.checkoutSettings?.deliveryOptions || ['shipping', 'pickup']).map((opt: string) => (
+                                <label key={opt} className="flex items-center gap-2 cursor-pointer">
+                                  <input 
+                                    type="radio" 
+                                    name="deliveryMethod"
+                                    value={opt}
+                                    checked={deliveryMethod === opt}
+                                    onChange={() => setDeliveryMethod(opt)}
+                                    className="text-primary focus:ring-primary"
+                                  />
+                                  <span className="text-sm font-medium">{opt === 'shipping' ? 'Shipping Delivery' : 'Store Pickup'}</span>
+                                </label>
+                              ))}
                             </div>
+
+                            {deliveryMethod === 'shipping' ? (
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1 col-span-2">
+                                  <Label htmlFor="shippingName" className="text-xs">Full Name</Label>
+                                  <Input id="shippingName" required value={shippingName} onChange={e => setShippingName(e.target.value)} placeholder="John Doe" />
+                                </div>
+                                <div className="space-y-1 col-span-2">
+                                  <Label htmlFor="shippingPhone" className="text-xs">Phone Number</Label>
+                                  <Input id="shippingPhone" required value={shippingPhone} onChange={e => setShippingPhone(e.target.value)} placeholder="+1 (555) 123-4567" />
+                                </div>
+                                <div className="space-y-1 col-span-2">
+                                  <Label htmlFor="shippingAddress1" className="text-xs">Address Line 1</Label>
+                                  <Input id="shippingAddress1" required={deliveryMethod === 'shipping'} value={shippingAddress1} onChange={e => setShippingAddress1(e.target.value)} placeholder="123 Printing Lane" />
+                                </div>
+                                <div className="space-y-1 col-span-2">
+                                  <Label htmlFor="shippingAddress2" className="text-xs">Address Line 2 (Optional)</Label>
+                                  <Input id="shippingAddress2" value={shippingAddress2} onChange={e => setShippingAddress2(e.target.value)} placeholder="Suite 100" />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label htmlFor="shippingCity" className="text-xs">City</Label>
+                                  <Input id="shippingCity" required={deliveryMethod === 'shipping'} value={shippingCity} onChange={e => setShippingCity(e.target.value)} placeholder="Creative City" />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label htmlFor="shippingState" className="text-xs">State / Prov</Label>
+                                  <Input id="shippingState" required={deliveryMethod === 'shipping'} value={shippingState} onChange={e => setShippingState(e.target.value)} placeholder="CA" />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label htmlFor="shippingZip" className="text-xs">ZIP / Postal</Label>
+                                  <Input id="shippingZip" required={deliveryMethod === 'shipping'} value={shippingZip} onChange={e => setShippingZip(e.target.value)} placeholder="90210" />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label htmlFor="shippingCountry" className="text-xs">Country</Label>
+                                  <Input id="shippingCountry" required={deliveryMethod === 'shipping'} value={shippingCountry} onChange={e => setShippingCountry(e.target.value)} placeholder="United States" />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg text-center my-2">
+                                <p className="text-sm font-semibold text-primary">Store Pickup Selected</p>
+                                <p className="text-xs text-muted-foreground mt-1">Fullname, Address and phone number will be added by the admin.</p>
+                                {globalConfig && (globalConfig.address1 || globalConfig.address2 || globalConfig.address3) && (
+                                  <div className="mt-3 pt-3 border-t border-primary/10 text-left">
+                                    <p className="text-xs font-bold text-foreground">Pickup Address:</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{globalConfig.address1}</p>
+                                    {globalConfig.address2 && <p className="text-xs text-muted-foreground">{globalConfig.address2}</p>}
+                                    {globalConfig.address3 && <p className="text-xs text-muted-foreground">{globalConfig.address3}</p>}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           <div className="flex gap-3 pt-2">
@@ -596,7 +666,7 @@ ${method === 'paypal' ? 'Paid via Simulated PayPal Checkout (Sandbox)' : ''}`
                               disabled={!isAddressComplete}
                               onClick={() => setCheckoutStep(3)}
                             >
-                              <span>Next: Payment Details</span> <ArrowLeft className="h-4 w-4 rotate-180" />
+                              <span>Next</span> <ArrowLeft className="h-4 w-4 rotate-180" />
                             </Button>
                           </div>
                           {!isAddressComplete && (
@@ -608,73 +678,46 @@ ${method === 'paypal' ? 'Paid via Simulated PayPal Checkout (Sandbox)' : ''}`
                       )}
 
                       {checkoutStep === 3 && (
-                        /* STEP 3: PAYMENT DETAILS */
                         <form onSubmit={handleCheckout} className="space-y-4 animate-in fade-in duration-200">
-                          <h4 className="text-sm font-bold flex items-center gap-2 text-foreground">
-                            <CreditCard className="h-4 w-4 text-primary" /> Payment Details
-                          </h4>
-                          <div className="space-y-3">
-                            <div className="space-y-1">
-                              <Label className="text-xs">Select Payment Method</Label>
-                              <select 
-                                value={paymentMethod} 
-                                onChange={e => setPaymentMethod(e.target.value)}
-                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                              >
-                                <option value="paypal">PayPal (Simulated Sandbox)</option>
-                                <option value="credit_card">Credit Card (Instant Approval)</option>
-                                <option value="cod">Cash on Delivery</option>
-                                <option value="bank_transfer">Bank Transfer</option>
-                              </select>
+                          <Card className="border border-border bg-muted/20 shadow-sm">
+                            <CardHeader className="py-2 px-3 border-b border-border/50 bg-muted/40">
+                              <CardTitle className="text-[11px] font-bold flex items-center gap-2">
+                                <ShoppingCart className="h-3.5 w-3.5 text-primary" /> Order Invoice Summary
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="py-2 px-3 space-y-1 text-[11px]">
+                              <div className="flex justify-between py-0.5 border-b border-dashed border-border/60">
+                                <span className="text-muted-foreground">{getProductInfo()?.name || 'Custom Print'} (Qty: {getPricingDetails().quantity})</span>
+                                <span className="font-medium text-foreground">${getPricingDetails().subtotal?.toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between py-0.5">
+                                <span className="text-muted-foreground">Subtotal</span>
+                                <span className="font-medium text-foreground">${getPricingDetails().subtotal?.toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between py-0.5">
+                                <span className="text-muted-foreground">Sales Tax (8%)</span>
+                                <span className="font-medium text-foreground">${getPricingDetails().tax?.toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between py-0.5">
+                                <span className="text-muted-foreground">Shipping</span>
+                                <span className="font-medium text-foreground">
+                                  {getPricingDetails().shipping === 0 ? 'FREE' : `$${getPricingDetails().shipping?.toFixed(2)}`}
+                                </span>
+                              </div>
+                              <div className="flex justify-between py-1 border-t border-border/85 text-xs font-bold mt-1">
+                                <span className="text-foreground">Total Price</span>
+                                <span className="text-primary font-bold">${getPricingDetails().total?.toFixed(2)}</span>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg text-xs space-y-2 text-muted-foreground animate-in fade-in duration-200">
+                            <div className="flex items-center gap-2 text-primary font-bold">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>Payment Assignment Pending</span>
                             </div>
-
-                            {paymentMethod === 'paypal' && (
-                              <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-lg text-xs space-y-2 text-muted-foreground animate-in fade-in duration-200">
-                                <p className="font-bold text-amber-600 dark:text-amber-400">PayPal Express Checkout:</p>
-                                <p>Click the button below to open the secure simulated PayPal Sandbox checkout.</p>
-                              </div>
-                            )}
-
-                            {paymentMethod === 'credit_card' && (
-                              <div className="p-3 bg-muted/30 border border-border rounded-lg space-y-2 animate-in fade-in duration-200">
-                                <div className="space-y-1">
-                                  <Label htmlFor="cardName" className="text-xs">Name on Card</Label>
-                                  <Input id="cardName" required={paymentMethod === 'credit_card'} value={cardName} onChange={e => setCardName(e.target.value)} placeholder="John Doe" />
-                                </div>
-                                <div className="space-y-1">
-                                  <Label htmlFor="cardNumber" className="text-xs">Card Number</Label>
-                                  <Input id="cardNumber" required={paymentMethod === 'credit_card'} value={cardNumber} onChange={e => setCardNumber(e.target.value)} placeholder="1234 5678 1234 5678" maxLength={19} />
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div className="space-y-1">
-                                    <Label htmlFor="cardExpiry" className="text-xs">Expiration Date</Label>
-                                    <Input id="cardExpiry" required={paymentMethod === 'credit_card'} value={cardExpiry} onChange={e => setCardExpiry(e.target.value)} placeholder="MM/YY" maxLength={5} />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label htmlFor="cardCvv" className="text-xs">CVV</Label>
-                                    <Input id="cardCvv" required={paymentMethod === 'credit_card'} type="password" value={cardCvv} onChange={e => setCardCvv(e.target.value)} placeholder="123" maxLength={4} />
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            {paymentMethod === 'bank_transfer' && (
-                              <div className="p-3 bg-blue-500/5 border border-blue-500/10 rounded-lg text-xs space-y-1 text-muted-foreground animate-in fade-in duration-200">
-                                <p className="font-bold text-blue-500">Bank Transfer Instructions:</p>
-                                <p>Please wire the total amount to:</p>
-                                <p className="font-mono text-foreground mt-1">Bank: PrintFlow National Bank</p>
-                                <p className="font-mono text-foreground">Account: 1234-5678-9012</p>
-                                <p className="font-mono text-foreground">Routing: 987654321</p>
-                                <p className="italic mt-1">Order will start processing once payment verification is confirmed.</p>
-                              </div>
-                            )}
-
-                            {paymentMethod === 'cod' && (
-                              <div className="p-3 bg-muted/40 border border-border rounded-lg text-xs text-muted-foreground animate-in fade-in duration-200">
-                                <p className="font-semibold text-foreground">Cash on Delivery:</p>
-                                <p>You will pay the full order amount in cash directly to our delivery courier upon receipt of the items.</p>
-                              </div>
-                            )}
+                            <p>No payment method is selected at checkout. Your payment details will be configured and assigned by the Administrator once your order is received.</p>
+                            <p className="font-medium text-foreground">You can complete payment from your account dashboard once configured.</p>
                           </div>
 
                           {checkoutError && (
@@ -701,10 +744,6 @@ ${method === 'paypal' ? 'Paid via Simulated PayPal Checkout (Sandbox)' : ''}`
                               {checkingOut ? (
                                 <>
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Placing Order...
-                                </>
-                              ) : paymentMethod === 'paypal' ? (
-                                <>
-                                  <span className="font-extrabold italic mr-2 text-yellow-300">PayPal</span> Pay & Place Order
                                 </>
                               ) : (
                                 <>
@@ -1233,8 +1272,8 @@ ${method === 'paypal' ? 'Paid via Simulated PayPal Checkout (Sandbox)' : ''}`
                     <p className="text-xs text-muted-foreground animate-pulse mt-2">
                       Redirecting to dashboard in {countdown} seconds...
                     </p>
-                    <Button className="w-full mt-2" onClick={() => navigate('/orders')}>
-                      Go to My Orders
+                    <Button className="w-full mt-2" onClick={() => navigate('/user-inventory')}>
+                      Go to My Inventory
                     </Button>
                   </div>
                 ) : (

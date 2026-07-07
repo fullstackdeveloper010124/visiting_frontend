@@ -203,7 +203,7 @@ export function EnhancedUserDashboard({ onMenuClick }: UserDashboardProps) {
                       </div>
 
                       <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <Button onClick={() => navigate('/orders', { state: { selectedOrderId: order.id } })} variant="outline" size="sm" className="ml-auto sm:ml-0">Details</Button>
+                        <Button onClick={() => navigate('/user-inventory', { state: { selectedOrderId: order.id } })} variant="outline" size="sm" className="ml-auto sm:ml-0">Details</Button>
                       </div>
                     </div>
                   ))}

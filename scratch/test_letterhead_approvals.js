@@ -1,4 +1,4 @@
-const BASE_URL = 'https://visiting-backend.onrender.com:5000/api/v1';
+const BASE_URL = 'https://visiting-backend.onrender.com/api/v1';
 
 async function runTests() {
   console.log('--- STARTING INTEGRATION TESTS FOR LETTERHEAD APPROVAL ---');

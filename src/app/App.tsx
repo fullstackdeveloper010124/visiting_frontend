@@ -178,7 +178,7 @@ function App() {
             />
             <Route
               path="/orders"
-              element={userRole && ['user', 'super_user', 'accounting', 'order_processor'].includes(userRole) ? <OrdersPage onMenuClick={() => setSidebarOpen(true)} /> : <Navigate to="/login" />}
+              element={userRole && ['user', 'super_user', 'accounting', 'order_processor'].includes(userRole) ? <OrdersPage userRole={userRole} onMenuClick={() => setSidebarOpen(true)} /> : <Navigate to="/login" />}
             />
             <Route
               path="/inventory"

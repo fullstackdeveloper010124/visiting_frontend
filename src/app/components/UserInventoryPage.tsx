@@ -2,12 +2,13 @@ import { AppHeader } from './AppHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
+import { Label } from './ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { StatusBadge, StockStatus } from './StatusBadge';
-import { Search, TrendingDown, TrendingUp, Package, ShoppingBag, Calendar, CreditCard, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Search, TrendingDown, TrendingUp, Package, ShoppingBag, Calendar, CreditCard, ChevronRight, CheckCircle2, Clock, CheckCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 interface InventoryItem {
   id: string;
@@ -26,6 +27,7 @@ interface UserInventoryPageProps {
 }
 
 export function UserInventoryPage({ onMenuClick }: UserInventoryPageProps) {
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [preOrderAlert, setPreOrderAlert] = useState<string | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
@@ -102,10 +104,77 @@ export function UserInventoryPage({ onMenuClick }: UserInventoryPageProps) {
 
   // User's order list
   const [orders, setOrders] = useState<any[]>([
-    { id: 'ORD-2026-001', name: 'Premium Business Cards', quantity: '500 units', cost: '$112.50', date: '2026-06-01', status: 'In Production' },
-    { id: 'ORD-2026-002', name: 'Corporate Letterheads', quantity: '25 reams', cost: '$350.00', date: '2026-06-02', status: 'Printing' },
-    { id: 'ORD-2026-003', name: 'Custom Envelopes', quantity: '1000 units', cost: '$350.00', date: '2026-05-28', status: 'Delivered' },
+    { id: 'ORD-2026-001', dbId: 'mock1', name: 'Premium Business Cards', quantity: '500 units', cost: '$112.50', date: '2026-06-01', status: 'In Production', paymentStatus: 'paid', allowedPaymentMethod: 'paypal' },
+    { id: 'ORD-2026-002', dbId: 'mock2', name: 'Corporate Letterheads', quantity: '25 reams', cost: '$350.00', date: '2026-06-02', status: 'Printing', paymentStatus: 'paid', allowedPaymentMethod: 'credit_card' },
+    { id: 'ORD-2026-003', dbId: 'mock3', name: 'Custom Envelopes', quantity: '1000 units', cost: '$350.00', date: '2026-05-28', status: 'Delivered', paymentStatus: 'pending', allowedPaymentMethod: 'none' },
   ]);
+
+  const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+
+  const handlePayNow = async (orderId: string, paymentMethod: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setPaying(true);
+    setPayError(null);
+
+    try {
+      const response = await fetch(`/api/v1/orders/${orderId}/pay`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ paymentMethod })
+      });
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        setOrders(prev => prev.map(o => o.dbId === orderId ? { ...o, paymentStatus: 'paid' } : o));
+        setPayingOrderId(null);
+      } else {
+        setPayError(resData.error || 'Payment failed.');
+      }
+    } catch (err) {
+      console.error('Payment error:', err);
+      setPayError('Connection error. Failed to complete payment.');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const getTimelineSteps = (order: any) => {
+    const orderDate = new Date(order.date === 'N/A' ? Date.now() : order.date);
+    
+    // Format timeline process step dates relative to order creation date
+    const formatDateOffset = (days: number) => {
+      const d = new Date(orderDate.getTime() + days * 24 * 60 * 60 * 1000);
+      return d.toISOString().slice(0, 10);
+    };
+
+    const allSteps = [
+      { label: 'Order Placed', date: formatDateOffset(0), status: 'pending' },
+      { label: 'Payment Confirmed', date: formatDateOffset(0), status: 'pending' },
+      { label: 'In Production', date: formatDateOffset(1), status: 'processing' },
+      { label: 'Printing', date: formatDateOffset(2), status: 'printing' },
+      { label: 'Quality Check', date: formatDateOffset(3), status: 'printing' },
+      { label: 'Shipped', date: formatDateOffset(4), status: 'shipped' },
+      { label: 'Delivered', date: formatDateOffset(6), status: 'delivered' },
+    ];
+
+    const statusOrder = ['pending', 'processing', 'printing', 'shipped', 'delivered'];
+    const currentStatus = order.rawStatus || 'pending';
+    const currentIndex = statusOrder.indexOf(currentStatus);
+
+    return allSteps.map((step, index) => {
+      const stepIndex = statusOrder.indexOf(step.status);
+      return {
+        ...step,
+        completed: stepIndex < currentIndex || (step.label === 'Payment Confirmed' && order.paymentStatus === 'paid') || currentStatus === 'delivered',
+        active: stepIndex === currentIndex && (step.label !== 'Payment Confirmed' || order.paymentStatus !== 'paid'),
+      };
+    });
+  };
 
   // Fetch real-time stock levels and actual user order history
   useEffect(() => {
@@ -192,17 +261,30 @@ export function UserInventoryPage({ onMenuClick }: UserInventoryPageProps) {
                 ? order.items.map((item: any) => item.customization || null).filter(Boolean)
                 : [];
 
-              return {
+               return {
                 id: order.orderNumber || order._id,
+                dbId: order._id,
                 name: names,
                 quantity: quantity,
                 cost: `$${order.total.toFixed(2)}`,
                 date: order.createdAt ? order.createdAt.slice(0, 10) : 'N/A',
                 status,
+                rawStatus: order.status || 'pending',
+                paymentStatus: order.paymentStatus || 'pending',
+                allowedPaymentMethod: order.allowedPaymentMethod || 'none',
                 customizations
               };
             });
             setOrders(mappedOrders);
+
+            // Auto-expand selected order passed from dashboard router state
+            const targetId = location.state?.selectedOrderId;
+            if (targetId) {
+              const matched = mappedOrders.find((o: any) => o.id === targetId || o.dbId === targetId);
+              if (matched) {
+                setExpandedOrderId(matched.id);
+              }
+            }
           } else {
             // Set orders to empty if the user actually has no orders yet in the DB
             setOrders([]);
@@ -214,7 +296,7 @@ export function UserInventoryPage({ onMenuClick }: UserInventoryPageProps) {
     };
 
     fetchInventoryAndOrders();
-  }, []);
+  }, [location.state?.selectedOrderId]);
 
   const filteredInventory = inventory.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -442,6 +524,10 @@ export function UserInventoryPage({ onMenuClick }: UserInventoryPageProps) {
                             <span>{order.id}</span>
                             <span>•</span>
                             <span className="flex items-center"><Calendar className="h-3 w-3 mr-1" /> {order.date}</span>
+                            <span>•</span>
+                            <span className={`font-semibold ${order.paymentStatus === 'paid' ? 'text-emerald-500' : 'text-amber-500 animate-pulse'}`}>
+                              {order.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -475,27 +561,141 @@ export function UserInventoryPage({ onMenuClick }: UserInventoryPageProps) {
                     </div>
 
                     {/* EXPANDED SPECIFICATIONS DETAILS */}
-                    {expandedOrderId === order.id && order.customizations && order.customizations.length > 0 && (
+                    {expandedOrderId === order.id && (
                       <div 
                         className="mt-4 pt-4 border-t border-dashed border-border text-xs space-y-4 animate-in fade-in slide-in-from-top-1 duration-200" 
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {order.customizations.map((customization: any, idx: number) => {
+                        {/* Pay Now Section */}
+                        {order.paymentStatus === 'pending' && (
+                          order.allowedPaymentMethod === 'none' ? (
+                            <div className="p-3 bg-amber-500/5 rounded-lg border border-amber-500/10 space-y-1">
+                              <p className="text-[11px] font-bold text-amber-600 flex items-center gap-1.5">
+                                <Clock className="h-3.5 w-3.5 text-amber-500" /> Payment Selection Pending
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">The Administrator has not yet assigned a payment method for your order. Once the Administrator configures your payment options, you will be able to complete payment here.</p>
+                            </div>
+                          ) : (
+                            <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 space-y-2">
+                              <p className="text-[11px] font-bold text-foreground">Complete Payment</p>
+                              <div className="p-2.5 bg-background rounded-md border border-border space-y-1">
+                                <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">Assigned Payment Method</p>
+                                <p className="text-xs font-semibold text-foreground">
+                                  {order.allowedPaymentMethod === 'paypal' && 'PayPal Sandbox'}
+                                  {order.allowedPaymentMethod === 'credit_card' && 'Credit Card'}
+                                  {order.allowedPaymentMethod === 'cod' && 'Cash on Delivery (COD)'}
+                                  {order.allowedPaymentMethod === 'bank_transfer' && 'Bank Transfer'}
+                                </p>
+                              </div>
+
+                              {payingOrderId === order.dbId ? (
+                                <div className="space-y-2 pt-1">
+                                  {order.allowedPaymentMethod === 'credit_card' && (
+                                    <div className="p-2 bg-muted/40 rounded border border-border space-y-2">
+                                      <div className="space-y-1">
+                                        <Label className="text-[9px]">Name on Card</Label>
+                                        <input className="w-full rounded border border-input bg-background px-2.5 py-1 text-xs focus:outline-none" placeholder="John Doe" />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-[9px]">Card Number</Label>
+                                        <input className="w-full rounded border border-input bg-background px-2.5 py-1 text-xs focus:outline-none" placeholder="1234 5678 1234 5678" />
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {payError && <p className="text-[9px] text-destructive">{payError}</p>}
+                                  
+                                  <div className="flex gap-2">
+                                    <Button 
+                                      variant="outline" 
+                                      className="w-1/2 text-[10px] py-1 h-7"
+                                      onClick={() => setPayingOrderId(null)}
+                                    >
+                                      Cancel
+                                    </Button>
+                                    <Button 
+                                      className="w-1/2 text-[10px] py-1 h-7 bg-primary text-white font-bold"
+                                      disabled={paying}
+                                      onClick={() => handlePayNow(order.dbId, order.allowedPaymentMethod)}
+                                    >
+                                      {paying ? 'Processing...' : 'Confirm & Pay'}
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <Button 
+                                  className="w-full bg-primary hover:bg-primary/95 text-white font-semibold py-1.5 text-[10px]"
+                                  onClick={() => {
+                                    setPayingOrderId(order.dbId);
+                                  }}
+                                >
+                                  Pay Now
+                                </Button>
+                              )}
+                            </div>
+                          )
+                        )}
+
+                        {/* Order Timeline Section (Visible only when Paid) */}
+                        {order.paymentStatus === 'paid' && (
+                          <div className="p-4 bg-muted/40 rounded-xl border border-border/50 space-y-4">
+                            <h5 className="font-bold text-primary text-[10px] uppercase tracking-wider">
+                              Order Delivery & Production Timeline
+                            </h5>
+                            <div className="relative pl-2">
+                              {getTimelineSteps(order).map((step, index, array) => (
+                                <div key={index} className="relative pb-6 last:pb-0">
+                                  {index < array.length - 1 && (
+                                    <div 
+                                      className={`absolute left-3 top-6 w-0.5 h-full -ml-px ${
+                                        step.completed ? 'bg-emerald-500' : 'bg-border'
+                                      }`}
+                                    />
+                                  )}
+                                  <div className="relative flex items-start gap-4">
+                                    <div className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${
+                                      step.completed 
+                                        ? 'bg-emerald-500 border-emerald-500' 
+                                        : step.active 
+                                        ? 'bg-primary border-primary animate-pulse' 
+                                        : 'bg-background border-border'
+                                    }`}>
+                                      {step.completed ? (
+                                        <CheckCircle className="h-3 w-3 text-white" />
+                                      ) : step.active ? (
+                                        <Clock className="h-3 w-3 text-white" />
+                                      ) : (
+                                        <div className="h-1.5 w-1.5 rounded-full bg-border" />
+                                      )}
+                                    </div>
+                                    <div className="flex-1 pt-0.5">
+                                      <p className={`text-xs font-semibold ${
+                                        step.completed || step.active ? 'text-foreground' : 'text-muted-foreground'
+                                      }`}>
+                                        {step.label}
+                                      </p>
+                                      <p className="text-[10px] text-muted-foreground mt-0.5">{step.date}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {order.customizations && order.customizations.length > 0 && order.customizations.map((customization: any, idx: number) => {
                           if (!customization) return null;
                           return (
                             <div key={idx} className="space-y-2">
                               <div className="flex items-center justify-between">
-                                <h5 className="font-bold text-primary text-xs uppercase tracking-wider">
+                                <h5 className="font-bold text-primary text-[10px] uppercase tracking-wider">
                                   Item #{idx + 1} Custom Specifications
                                 </h5>
                               </div>
                               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 bg-muted/20 p-3 rounded-lg border border-border/40">
                                 {Object.entries(customization).map(([key, val]) => {
                                   if (val === null || val === undefined || val === '' || typeof val === 'object') return null;
-                                  
-                                  // Skip demo image strings that might clutter the view
                                   if (String(val).startsWith('/images/')) return null;
-                                  
                                   const label = key
                                     .replace(/([A-Z])/g, ' $1')
                                     .replace(/^./, str => str.toUpperCase());
