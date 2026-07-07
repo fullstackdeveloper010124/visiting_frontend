@@ -231,9 +231,15 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
   };
 
   const handleSendForApproval = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Your session has expired. Please log in again.');
+      navigate('/login');
+      return;
+    }
+
     setSendingApproval(true);
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch('/api/v1/customize-config/send-approval', {
         method: 'POST',
         headers: {
@@ -272,6 +278,11 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
         setApprovalSentEmail(resData.data.userEmail);
         setTestApprovalUrl(resData.approvalUrl || '');
         setApprovalModalOpen(true);
+      } else if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('userRole');
+        alert('Session expired. Please log in again.');
+        navigate('/login');
       } else {
         alert(resData.error || 'Failed to send approval request.');
       }

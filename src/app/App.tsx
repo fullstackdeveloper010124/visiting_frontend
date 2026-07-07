@@ -44,9 +44,17 @@ function App() {
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('token');
+      const storedRole = localStorage.getItem('userRole') as UserRole | null;
+
       if (!token) {
+        localStorage.removeItem('userRole');
+        setUserRole(null);
         setLoading(false);
         return;
+      }
+
+      if (storedRole) {
+        setUserRole(storedRole);
       }
 
       try {
@@ -59,8 +67,10 @@ function App() {
 
         if (response.ok && resData.success) {
           setUserRole(resData.data.role);
+          localStorage.setItem('userRole', resData.data.role);
         } else {
           localStorage.removeItem('token');
+          localStorage.removeItem('userRole');
           setUserRole(null);
         }
       } catch (error) {
@@ -79,6 +89,7 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
     setUserRole(null);
   };
 
