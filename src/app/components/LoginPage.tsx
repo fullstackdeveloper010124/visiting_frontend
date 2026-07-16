@@ -38,6 +38,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       if (response.ok && resData.success) {
         localStorage.setItem('token', resData.data.token);
         localStorage.setItem('userRole', resData.data.role);
+        localStorage.setItem('userName', resData.data.fullName);
+        localStorage.setItem('userEmail', resData.data.email);
         onLogin(resData.data.role);
         const params = new URLSearchParams(window.location.search);
         const redirect = params.get('redirect');

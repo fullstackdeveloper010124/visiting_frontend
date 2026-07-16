@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { AppHeader } from './AppHeader';
 import { StatsCard } from './StatsCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
-import { TrendingUp, Users, Package, DollarSign, ShoppingCart, AlertCircle, Eye, Loader2 } from 'lucide-react';
+import { TrendingUp, Users, Package, DollarSign, ShoppingCart, AlertCircle, Eye, Loader2, Image as ImageIcon } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { StatusBadge, OrderStatus } from './StatusBadge';
 import { Button } from './ui/button';
@@ -26,6 +26,196 @@ export function AdminDashboard({ onMenuClick }: AdminDashboardProps) {
   const [selectedApproval, setSelectedApproval] = useState<any | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
+  // Live Orders state
+  const [liveOrders, setLiveOrders] = useState<any[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [orderDetailModalOpen, setOrderDetailModalOpen] = useState(false);
+
+  const renderDesignPreview = (customization: any, productName: string) => {
+    if (!customization) {
+      return (
+        <div className="flex flex-col items-center justify-center border border-dashed border-border rounded-lg p-4 bg-muted/20 text-muted-foreground w-full max-w-[220px] mx-auto text-center">
+          <Package className="h-6 w-6 mb-1 opacity-40 text-primary" />
+          <p className="text-[10px] font-semibold text-foreground">Standard Printed Item</p>
+          <p className="text-[9px]">{productName}</p>
+        </div>
+      );
+    }
+
+    const getFontFamily = (family: string) => {
+      switch(family) {
+        case 'serif': return 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif';
+        case 'mono': return 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+        default: return 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+      }
+    };
+
+    // Envelope
+    if (customization.uploadedFront || customization.uploadedBack) {
+      return (
+        <div className="space-y-2.5 w-full max-w-[240px] mx-auto">
+          {customization.uploadedFront && (
+            <div className="space-y-0.5 text-left">
+              <span className="text-[8px] font-bold text-muted-foreground uppercase">Front Side</span>
+              <div 
+                className="w-full aspect-[9.5/4.125] rounded border border-border bg-white bg-no-repeat bg-center"
+                style={{
+                  backgroundImage: customization.uploadedFront !== '/images/envelope_front_demo.png' && customization.uploadedFront.startsWith('/') ? `url(${customization.uploadedFront})` : 'none',
+                  backgroundSize: 'cover',
+                }}
+              >
+                {(customization.uploadedFront === '/images/envelope_front_demo.png' || !customization.uploadedFront.startsWith('/')) && (
+                  <div className="h-full flex items-center justify-center text-[9px] text-muted-foreground">Front Preview</div>
+                )}
+              </div>
+            </div>
+          )}
+          {customization.uploadedBack && (
+            <div className="space-y-0.5 text-left">
+              <span className="text-[8px] font-bold text-muted-foreground uppercase">Back Side</span>
+              <div 
+                className="w-full aspect-[9.5/4.125] rounded border border-border bg-white bg-no-repeat bg-center"
+                style={{
+                  backgroundImage: customization.uploadedBack !== '/images/envelope_back_demo.png' && customization.uploadedBack.startsWith('/') ? `url(${customization.uploadedBack})` : 'none',
+                  backgroundSize: 'cover',
+                }}
+              >
+                {(customization.uploadedBack === '/images/envelope_back_demo.png' || !customization.uploadedBack.startsWith('/')) && (
+                  <div className="h-full flex items-center justify-center text-[9px] text-muted-foreground">Back Preview</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Letterhead
+    if (customization.uploadedLetterhead) {
+      return (
+        <div className="w-full max-w-[160px] mx-auto space-y-0.5 text-left">
+          <span className="text-[8px] font-bold text-muted-foreground uppercase">Letterhead Design</span>
+          <div 
+            className="w-full aspect-[8.5/11] rounded border border-border bg-white bg-no-repeat bg-center"
+            style={{
+              backgroundImage: `url(${customization.uploadedLetterhead})`,
+              backgroundSize: 'cover',
+            }}
+          />
+        </div>
+      );
+    }
+
+    // Notepad
+    if (customization.uploadedNotepad) {
+      return (
+        <div className="w-full max-w-[160px] mx-auto space-y-0.5 text-left">
+          <span className="text-[8px] font-bold text-muted-foreground uppercase">Notepad Design</span>
+          <div 
+            className="w-full aspect-[5.5/8.5] rounded border border-border bg-white bg-no-repeat bg-center"
+            style={{
+              backgroundImage: `url(${customization.uploadedNotepad})`,
+              backgroundSize: 'cover',
+            }}
+          />
+        </div>
+      );
+    }
+
+    // Folder
+    if (customization.uploadedFolder) {
+      return (
+        <div className="w-full max-w-[160px] mx-auto space-y-0.5 text-left">
+          <span className="text-[8px] font-bold text-muted-foreground uppercase">Presentation Folder</span>
+          <div 
+            className="w-full aspect-[9/12] rounded border border-border bg-white bg-no-repeat bg-center"
+            style={{
+              backgroundImage: `url(${customization.uploadedFolder})`,
+              backgroundSize: 'cover',
+            }}
+          />
+        </div>
+      );
+    }
+
+    // Compliment Slip
+    if (customization.uploadedSlip) {
+      return (
+        <div className="w-full max-w-[200px] mx-auto space-y-0.5 text-left">
+          <span className="text-[8px] font-bold text-muted-foreground uppercase">Compliment Slip</span>
+          <div 
+            className="w-full aspect-[8.5/3.5] rounded border border-border bg-white bg-no-repeat bg-center"
+            style={{
+              backgroundImage: `url(${customization.uploadedSlip})`,
+              backgroundSize: 'cover',
+            }}
+          />
+        </div>
+      );
+    }
+
+    // Business Card
+    if (customization.companyName || customization.personName) {
+      return (
+        <div className="space-y-2.5 w-full max-w-[200px] mx-auto">
+          {/* Front Side */}
+          <div className="space-y-0.5 text-left">
+            <span className="text-[8px] font-bold text-muted-foreground uppercase">Front Side</span>
+            <div 
+              className="w-full aspect-[3.5/2] rounded border border-border relative overflow-hidden text-left"
+              style={{
+                backgroundColor: customization.secondaryColor || '#ffffff',
+                fontFamily: getFontFamily(customization.fontFamily),
+                color: customization.textColor || '#1e293b',
+              }}
+            >
+              <div className="absolute top-0 right-0 p-1.5 text-right flex flex-col items-end scale-[0.6] origin-top-right">
+                <span className="text-[8px] font-bold tracking-wider uppercase opacity-75">{customization.companyName}</span>
+                <span className="text-[6px] tracking-wider opacity-60 italic">{customization.tagline}</span>
+              </div>
+              <div className="absolute bottom-0 left-0 p-1.5 space-y-0.5 max-w-[75%] scale-[0.55] origin-bottom-left leading-tight">
+                <h3 className="text-xs font-bold">{customization.personName}</h3>
+                <p className="text-[6px] font-medium tracking-wide opacity-85">{customization.jobTitle}</p>
+                <div className="pt-0.5 text-[4.5px] opacity-85 leading-normal">
+                  {customization.phone && <div>📞 {customization.phone}</div>}
+                  {customization.email && <div>✉️ {customization.email}</div>}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Back Side */}
+          <div className="space-y-0.5 text-left">
+            <span className="text-[8px] font-bold text-muted-foreground uppercase">Back Side</span>
+            <div 
+              className="w-full aspect-[3.5/2] rounded border border-border relative overflow-hidden flex flex-col items-center justify-center p-1"
+              style={{
+                backgroundColor: customization.primaryColor || '#10b981',
+                fontFamily: getFontFamily(customization.fontFamily),
+              }}
+            >
+              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white to-transparent pointer-events-none"></div>
+              <div className="text-center scale-[0.55] origin-center bg-black/10 backdrop-blur-sm p-1 rounded border border-white/10 w-fit">
+                <h2 className="text-xs font-bold leading-none" style={{ color: customization.secondaryColor || '#ffffff' }}>{customization.companyName}</h2>
+                <p className="text-[5px] tracking-widest uppercase opacity-95 leading-none mt-0.5" style={{ color: customization.secondaryColor || '#ffffff' }}>{customization.tagline}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Default Fallback
+    return (
+      <div className="flex flex-col items-center justify-center border border-dashed border-border rounded-lg p-4 bg-muted/20 text-muted-foreground w-full max-w-[220px] mx-auto text-center">
+        <Package className="h-6 w-6 mb-1 opacity-40 text-primary" />
+        <p className="text-[10px] font-semibold text-foreground">Custom Ordered Product</p>
+        <p className="text-[9px]">{productName}</p>
+      </div>
+    );
+  };
+
   useEffect(() => {
     const fetchApprovals = async () => {
       try {
@@ -46,7 +236,27 @@ export function AdminDashboard({ onMenuClick }: AdminDashboardProps) {
       }
     };
 
+    const fetchOrders = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/v1/orders', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const resData = await response.json();
+        if (response.ok && resData.success) {
+          setLiveOrders(resData.data);
+        }
+      } catch (err) {
+        console.error('Error fetching live orders:', err);
+      } finally {
+        setLoadingOrders(false);
+      }
+    };
+
     fetchApprovals();
+    fetchOrders();
   }, []);
 
   const stats = [
@@ -260,35 +470,63 @@ export function AdminDashboard({ onMenuClick }: AdminDashboardProps) {
 
           {/* Recent Orders */}
           <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>Recent Orders</CardTitle>
-              <CardDescription>Latest customer orders requiring attention</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Recent Orders</CardTitle>
+                <CardDescription>Latest customer orders requiring attention</CardDescription>
+              </div>
+              <span className="text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-full font-semibold">
+                Total Orders: {liveOrders.length}
+              </span>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {recentOrders.map((order) => (
-                  <div key={order.id} className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors">
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                        <Package className="h-5 w-5 text-primary" />
+              {loadingOrders ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                </div>
+              ) : liveOrders.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No orders placed yet in the database.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {liveOrders.map((order) => {
+                    const names = order.items && order.items.length > 0
+                      ? order.items.map((item: any) => item.product?.name || 'Custom Print').join(', ')
+                      : 'Custom Print';
+
+                    return (
+                      <div 
+                        key={order._id} 
+                        className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setOrderDetailModalOpen(true);
+                        }}
+                      >
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                            <Package className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-foreground text-sm">{order.customer?.fullName || 'Anonymous'}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {order.orderNumber || order._id} • {names}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className="font-bold text-foreground text-sm">${order.total?.toFixed(2)}</p>
+                            <p className="text-[10px] text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}</p>
+                          </div>
+                          <StatusBadge status={order.status} />
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground text-sm">{order.customer}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {order.id} • {order.product}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="font-semibold text-foreground text-sm">${order.amount}</p>
-                        <p className="text-xs text-muted-foreground">{order.date}</p>
-                      </div>
-                      <StatusBadge status={order.status} />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -512,6 +750,108 @@ export function AdminDashboard({ onMenuClick }: AdminDashboardProps) {
                 onClick={() => setDetailModalOpen(false)}
               >
                 Close Details
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
+
+      {/* ORDER DETAILS MODAL (SUPER ADMIN VIEW) */}
+      {orderDetailModalOpen && selectedOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <Card className="w-full max-w-lg bg-background border border-border shadow-2xl overflow-hidden rounded-xl animate-in zoom-in-95 duration-200">
+            <div className="h-2 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+            <CardHeader className="pb-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-xl font-bold">Order Details & History</CardTitle>
+                  <CardDescription className="text-xs mt-1">Order Ref: <span className="font-semibold text-foreground">{selectedOrder.orderNumber || selectedOrder._id}</span></CardDescription>
+                </div>
+                <StatusBadge status={selectedOrder.status} />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 px-6 max-h-[60vh] overflow-y-auto">
+              {/* Kobe (Date) and Customer Details */}
+              <div className="p-4 rounded-lg bg-muted/40 border border-border space-y-2 text-sm text-left">
+                <div className="flex justify-between py-0.5 border-b border-border/20">
+                  <span className="text-muted-foreground text-xs">Order Date (Kobe):</span>
+                  <span className="font-bold text-foreground text-xs">
+                    {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString() : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between py-0.5 border-b border-border/20">
+                  <span className="text-muted-foreground text-xs">Customer Name:</span>
+                  <span className="font-medium text-foreground text-xs">{selectedOrder.customer?.fullName || 'Anonymous'}</span>
+                </div>
+                <div className="flex justify-between py-0.5 border-b border-border/20">
+                  <span className="text-muted-foreground text-xs">Customer Email:</span>
+                  <span className="font-medium text-foreground text-xs">{selectedOrder.customer?.email || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-0.5 border-b border-border/20">
+                  <span className="text-muted-foreground text-xs">Payment Status:</span>
+                  <span className="font-medium text-foreground text-xs uppercase">{selectedOrder.paymentStatus || 'pending'}</span>
+                </div>
+              </div>
+
+              {/* Items Detail */}
+              <div className="space-y-2 text-left">
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Ordered Products</h4>
+                <div className="border border-border rounded-lg overflow-hidden bg-muted/20">
+                  {selectedOrder.items?.map((item: any, idx: number) => (
+                    <div key={idx} className="p-3 border-b border-border last:border-0 text-xs flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold text-foreground">{item.product?.name || 'Custom Print'}</p>
+                        <p className="text-[10px] text-muted-foreground">SKU: {item.product?.sku || 'N/A'} • Qty: {item.quantity} units</p>
+                      </div>
+                      <p className="font-bold text-foreground">${item.subtotal?.toFixed(2)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Design Print Preview */}
+              <div className="space-y-2 text-left">
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Design Print Preview</h4>
+                <div className="p-4 border border-border bg-muted/10 rounded-lg flex items-center justify-center w-full">
+                  {renderDesignPreview(selectedOrder.items?.[0]?.customization, selectedOrder.items?.[0]?.product?.name || 'Custom Print')}
+                </div>
+              </div>
+
+              {/* Delivery / Shipping details (Kothai) */}
+              <div className="space-y-2 text-left">
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Delivery Notes & Location (Kothai)</h4>
+                <div className="p-3 bg-muted/40 border border-border rounded-lg text-xs leading-relaxed whitespace-pre-wrap font-sans">
+                  {selectedOrder.delivery?.notes || 'No shipping or delivery details provided.'}
+                </div>
+              </div>
+
+              {/* Invoice Breakdown */}
+              <div className="p-3 bg-muted/20 border border-border rounded-lg text-xs space-y-1.5 text-left">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-medium text-foreground">${selectedOrder.subtotal?.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tax</span>
+                  <span className="font-medium text-foreground">${selectedOrder.tax?.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Shipping</span>
+                  <span className="font-medium text-foreground">${selectedOrder.shipping?.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-sm border-t border-border/60 pt-1.5 mt-1 text-primary">
+                  <span>Grand Total</span>
+                  <span>${selectedOrder.total?.toFixed(2)}</span>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="bg-muted/30 border-t border-border px-6 py-4 flex justify-end">
+              <Button 
+                variant="outline" 
+                className="font-medium h-9 text-xs"
+                onClick={() => setOrderDetailModalOpen(false)}
+              >
+                Close Order Details
               </Button>
             </CardFooter>
           </Card>

@@ -68,9 +68,13 @@ function App() {
         if (response.ok && resData.success) {
           setUserRole(resData.data.role);
           localStorage.setItem('userRole', resData.data.role);
+          localStorage.setItem('userName', resData.data.fullName);
+          localStorage.setItem('userEmail', resData.data.email);
         } else {
           localStorage.removeItem('token');
           localStorage.removeItem('userRole');
+          localStorage.removeItem('userName');
+          localStorage.removeItem('userEmail');
           setUserRole(null);
         }
       } catch (error) {
@@ -90,6 +94,8 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userEmail');
     setUserRole(null);
   };
 

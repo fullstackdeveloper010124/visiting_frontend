@@ -44,6 +44,14 @@ interface AppSidebarProps {
 
 export function AppSidebar({ userRole, isOpen, onClose, onLogout }: AppSidebarProps) {
   const location = useLocation();
+  const userName = localStorage.getItem('userName') || getRoleLabel(userRole);
+  const userEmail = localStorage.getItem('userEmail') || `${userRole}@company.com`;
+  const initials = userName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase() || getRoleLabel(userRole).substring(0, 2).toUpperCase();
 
   const navItems: NavItem[] = [
     { title: 'Dashboard', href: '/', icon: LayoutDashboard, roles: ['user', 'super_user', 'inventory_admin', 'order_processor', 'delivery_person', 'accounting', 'salesperson', 'finance_contracts', 'procurement', 'it_administrator'] },
@@ -52,7 +60,7 @@ export function AppSidebar({ userRole, isOpen, onClose, onLogout }: AppSidebarPr
     { title: 'Products', href: '/products', icon: Package, roles: ['super_user', 'procurement'] },
     { title: 'Customize', href: '/customize', icon: Printer, roles: ['super_user'] },
     { title: 'My Orders', href: '/orders', icon: ShoppingCart, roles: ['super_user', 'accounting', 'order_processor'] },
-    { title: 'Inventory', href: '/inventory', icon: Package, roles: ['super_user', 'procurement'] },
+    { title: 'Inventory Supplies', href: '/inventory', icon: Package, roles: ['procurement'] },
     
     // User role specific navigation
     { title: 'My Products', href: '/products', icon: Package, roles: ['user'] },
@@ -63,7 +71,7 @@ export function AppSidebar({ userRole, isOpen, onClose, onLogout }: AppSidebarPr
     { title: 'Help', href: '/help', icon: HelpCircle, roles: ['user'] },
     
     // Inventory Admin
-    { title: 'Stock Management', href: '/admin/inventory', icon: Package, roles: ['super_user', 'inventory_admin'] },
+    { title: 'Inventory & Stock Management', href: '/admin/inventory', icon: Package, roles: ['super_user', 'inventory_admin'] },
     
     // Order Processor
     { title: 'Order Processing', href: '/orders', icon: ClipboardList, roles: ['super_user', 'order_processor'] },
@@ -216,15 +224,18 @@ export function AppSidebar({ userRole, isOpen, onClose, onLogout }: AppSidebarPr
         {/* User Profile */}
         <div className="border-t border-border p-4 space-y-3">
           <div className="flex items-center gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${getRoleColor(userRole)} text-white font-medium text-sm`}>
-              {getRoleLabel(userRole).substring(0, 2).toUpperCase()}
+            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${getRoleColor(userRole)} text-white font-bold text-xs`}>
+              {initials}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-sm font-semibold text-foreground truncate" title={userName}>
+                {userName}
+              </p>
+              <p className="text-xs text-muted-foreground truncate font-medium">
                 {getRoleLabel(userRole)}
               </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {userRole}@company.com
+              <p className="text-[10px] text-muted-foreground truncate font-mono mt-0.5" title={userEmail}>
+                {userEmail}
               </p>
             </div>
           </div>

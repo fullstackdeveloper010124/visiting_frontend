@@ -140,11 +140,22 @@ export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
   const [adminSaveSuccess, setAdminSaveSuccess] = useState(false);
   const [adminSaveError, setAdminSaveError] = useState<string | null>(null);
 
+  // States for Admin status update control
+  const [adminOrderStatus, setAdminOrderStatus] = useState('pending');
+  const [adminPaymentStatus, setAdminPaymentStatus] = useState('pending');
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [statusUpdateSuccess, setStatusUpdateSuccess] = useState(false);
+  const [statusUpdateError, setStatusUpdateError] = useState<string | null>(null);
+
   useEffect(() => {
     if (selectedOrderData) {
       setAdminSetPaymentMethod(selectedOrderData.allowedPaymentMethod || 'none');
+      setAdminOrderStatus(selectedOrderData.status || 'pending');
+      setAdminPaymentStatus(selectedOrderData.paymentStatus || 'pending');
       setAdminSaveSuccess(false);
       setAdminSaveError(null);
+      setStatusUpdateSuccess(false);
+      setStatusUpdateError(null);
     }
   }, [selectedOrder, selectedOrderData]);
 
@@ -179,6 +190,43 @@ export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
       setAdminSaveError('Network error. Failed to save.');
     } finally {
       setSavingPaymentOption(false);
+    }
+  const handleUpdateStatus = async () => {
+    if (!selectedOrderData) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setUpdatingStatus(true);
+    setStatusUpdateSuccess(false);
+    setStatusUpdateError(null);
+
+    try {
+      const response = await fetch(`/api/v1/orders/${selectedOrderData.dbId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: adminOrderStatus,
+          paymentStatus: adminPaymentStatus
+        })
+      });
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        setStatusUpdateSuccess(true);
+        setOrders(prev => prev.map(o => o.dbId === selectedOrderData.dbId ? { 
+          ...o, 
+          status: adminOrderStatus as OrderStatus, 
+          paymentStatus: adminPaymentStatus as 'pending' | 'paid' | 'refunded' 
+        } : o));
+      } else {
+        setStatusUpdateError(resData.error || 'Failed to update status.');
+      }
+    } catch (err) {
+      console.error('Update status error:', err);
+      setStatusUpdateError('Network error. Failed to update status.');
+    } finally {
+      setUpdatingStatus(false);
     }
   };
 
@@ -406,6 +454,54 @@ export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
                           </div>
                         )}
                       </div>
+
+                      {/* Admin Order Status & Payment Status Control */}
+                      {userRole && ['super_user', 'order_processor', 'accounting'].includes(userRole) && (
+                        <div className="mt-4 p-4 bg-muted/60 border border-border rounded-xl space-y-4 text-left">
+                          <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">Admin Status Controller</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Order Status Select */}
+                            <div className="space-y-1">
+                              <Label className="text-[10px] font-bold text-muted-foreground uppercase">Order Production Status</Label>
+                              <select 
+                                value={adminOrderStatus} 
+                                onChange={e => setAdminOrderStatus(e.target.value)}
+                                className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="processing">In Production (Processing)</option>
+                                <option value="printing">Printing</option>
+                                <option value="ready">Ready to Ship</option>
+                                <option value="shipped">Shipped</option>
+                                <option value="delivered">Delivered</option>
+                              </select>
+                            </div>
+
+                            {/* Payment Status Select */}
+                            <div className="space-y-1">
+                              <Label className="text-[10px] font-bold text-muted-foreground uppercase">Payment Status</Label>
+                              <select 
+                                value={adminPaymentStatus} 
+                                onChange={e => setAdminPaymentStatus(e.target.value)}
+                                className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              >
+                                <option value="pending">Pending / Unpaid</option>
+                                <option value="paid">Paid</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <Button 
+                            className="bg-primary hover:bg-primary/90 text-white text-xs px-4 py-2 font-semibold h-9"
+                            onClick={handleUpdateStatus}
+                            disabled={updatingStatus}
+                          >
+                            {updatingStatus ? 'Updating...' : 'Update Status'}
+                          </Button>
+                          {statusUpdateSuccess && <p className="text-[10px] text-emerald-600 font-medium mt-1">Order status updated successfully!</p>}
+                          {statusUpdateError && <p className="text-[10px] text-destructive mt-1">{statusUpdateError}</p>}
+                        </div>
+                      )}
 
                       {/* Pay Now Section */}
                       {selectedOrderData.paymentStatus === 'pending' && (

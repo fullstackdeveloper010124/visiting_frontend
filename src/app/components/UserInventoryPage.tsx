@@ -5,7 +5,7 @@ import { Badge } from './ui/badge';
 import { Label } from './ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { StatusBadge, StockStatus } from './StatusBadge';
-import { Search, TrendingDown, TrendingUp, Package, ShoppingBag, Calendar, CreditCard, ChevronRight, CheckCircle2, Clock, CheckCircle } from 'lucide-react';
+import { Search, TrendingDown, TrendingUp, Package, ShoppingBag, Calendar, CreditCard, ChevronRight, CheckCircle2, Clock, CheckCircle, Image as ImageIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Link, useLocation } from 'react-router-dom';
@@ -31,6 +31,191 @@ export function UserInventoryPage({ onMenuClick }: UserInventoryPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [preOrderAlert, setPreOrderAlert] = useState<string | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+
+  const renderDesignPreview = (customization: any, productName: string) => {
+    if (!customization) {
+      return (
+        <div className="flex flex-col items-center justify-center border border-dashed border-border rounded-lg p-6 bg-muted/20 text-muted-foreground w-full max-w-[250px] mx-auto text-center">
+          <Package className="h-8 w-8 mb-2 opacity-40 text-primary" />
+          <p className="text-xs font-semibold text-foreground">Standard Printed Item</p>
+          <p className="text-[10px]">{productName}</p>
+        </div>
+      );
+    }
+
+    const getFontFamily = (family: string) => {
+      switch(family) {
+        case 'serif': return 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif';
+        case 'mono': return 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+        default: return 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+      }
+    };
+
+    // Envelope
+    if (customization.uploadedFront || customization.uploadedBack) {
+      return (
+        <div className="space-y-3 w-full max-w-[280px] mx-auto">
+          {customization.uploadedFront && (
+            <div className="space-y-1">
+              <span className="text-[9px] font-bold text-muted-foreground uppercase">Front Side</span>
+              <div 
+                className="w-full aspect-[9.5/4.125] rounded border border-border shadow-sm bg-white bg-no-repeat bg-center"
+                style={{
+                  backgroundImage: customization.uploadedFront !== '/images/envelope_front_demo.png' && customization.uploadedFront.startsWith('/') ? `url(${customization.uploadedFront})` : 'none',
+                  backgroundSize: 'cover',
+                }}
+              >
+                {(customization.uploadedFront === '/images/envelope_front_demo.png' || !customization.uploadedFront.startsWith('/')) && (
+                  <div className="h-full flex items-center justify-center text-[10px] text-muted-foreground">Front Preview</div>
+                )}
+              </div>
+            </div>
+          )}
+          {customization.uploadedBack && (
+            <div className="space-y-1">
+              <span className="text-[9px] font-bold text-muted-foreground uppercase">Back Side</span>
+              <div 
+                className="w-full aspect-[9.5/4.125] rounded border border-border shadow-sm bg-white bg-no-repeat bg-center"
+                style={{
+                  backgroundImage: customization.uploadedBack !== '/images/envelope_back_demo.png' && customization.uploadedBack.startsWith('/') ? `url(${customization.uploadedBack})` : 'none',
+                  backgroundSize: 'cover',
+                }}
+              >
+                {(customization.uploadedBack === '/images/envelope_back_demo.png' || !customization.uploadedBack.startsWith('/')) && (
+                  <div className="h-full flex items-center justify-center text-[10px] text-muted-foreground">Back Preview</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Letterhead
+    if (customization.uploadedLetterhead) {
+      return (
+        <div className="w-full max-w-[200px] mx-auto space-y-1">
+          <span className="text-[9px] font-bold text-muted-foreground uppercase">Letterhead Design</span>
+          <div 
+            className="w-full aspect-[8.5/11] rounded border border-border shadow-sm bg-white bg-no-repeat bg-center"
+            style={{
+              backgroundImage: `url(${customization.uploadedLetterhead})`,
+              backgroundSize: 'cover',
+            }}
+          />
+        </div>
+      );
+    }
+
+    // Notepad
+    if (customization.uploadedNotepad) {
+      return (
+        <div className="w-full max-w-[200px] mx-auto space-y-1">
+          <span className="text-[9px] font-bold text-muted-foreground uppercase">Notepad Design</span>
+          <div 
+            className="w-full aspect-[5.5/8.5] rounded border border-border shadow-sm bg-white bg-no-repeat bg-center"
+            style={{
+              backgroundImage: `url(${customization.uploadedNotepad})`,
+              backgroundSize: 'cover',
+            }}
+          />
+        </div>
+      );
+    }
+
+    // Folder
+    if (customization.uploadedFolder) {
+      return (
+        <div className="w-full max-w-[200px] mx-auto space-y-1">
+          <span className="text-[9px] font-bold text-muted-foreground uppercase">Presentation Folder</span>
+          <div 
+            className="w-full aspect-[9/12] rounded border border-border shadow-sm bg-white bg-no-repeat bg-center"
+            style={{
+              backgroundImage: `url(${customization.uploadedFolder})`,
+              backgroundSize: 'cover',
+            }}
+          />
+        </div>
+      );
+    }
+
+    // Compliment Slip
+    if (customization.uploadedSlip) {
+      return (
+        <div className="w-full max-w-[250px] mx-auto space-y-1">
+          <span className="text-[9px] font-bold text-muted-foreground uppercase">Compliment Slip</span>
+          <div 
+            className="w-full aspect-[8.5/3.5] rounded border border-border shadow-sm bg-white bg-no-repeat bg-center"
+            style={{
+              backgroundImage: `url(${customization.uploadedSlip})`,
+              backgroundSize: 'cover',
+            }}
+          />
+        </div>
+      );
+    }
+
+    // Business Card
+    if (customization.companyName || customization.personName) {
+      return (
+        <div className="space-y-3 w-full max-w-[250px] mx-auto">
+          {/* Front Side */}
+          <div className="space-y-1">
+            <span className="text-[9px] font-bold text-muted-foreground uppercase">Front Side</span>
+            <div 
+              className="w-full aspect-[3.5/2] rounded border border-border shadow-sm relative overflow-hidden text-left"
+              style={{
+                backgroundColor: customization.secondaryColor || '#ffffff',
+                fontFamily: getFontFamily(customization.fontFamily),
+                color: customization.textColor || '#1e293b',
+              }}
+            >
+              {/* Scaled down business card front content */}
+              <div className="absolute top-0 right-0 p-2 text-right flex flex-col items-end scale-75 origin-top-right">
+                <span className="text-[8px] font-bold tracking-wider uppercase opacity-75">{customization.companyName}</span>
+                <span className="text-[6px] tracking-wider opacity-60 italic">{customization.tagline}</span>
+              </div>
+              <div className="absolute bottom-0 left-0 p-2 space-y-0.5 max-w-[70%] scale-[0.7] origin-bottom-left leading-tight">
+                <h3 className="text-sm font-bold">{customization.personName}</h3>
+                <p className="text-[7px] font-medium tracking-wide opacity-85">{customization.jobTitle}</p>
+                <div className="pt-0.5 text-[5px] space-y-0.2 opacity-85 leading-normal">
+                  {customization.phone && <div>📞 {customization.phone}</div>}
+                  {customization.email && <div>✉️ {customization.email}</div>}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Back Side */}
+          <div className="space-y-1">
+            <span className="text-[9px] font-bold text-muted-foreground uppercase">Back Side</span>
+            <div 
+              className="w-full aspect-[3.5/2] rounded border border-border shadow-sm relative overflow-hidden flex flex-col items-center justify-center p-2"
+              style={{
+                backgroundColor: customization.primaryColor || '#10b981',
+                fontFamily: getFontFamily(customization.fontFamily),
+              }}
+            >
+              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white to-transparent pointer-events-none"></div>
+              <div className="text-center scale-[0.7] origin-center bg-black/10 backdrop-blur-sm p-1.5 rounded border border-white/10 w-fit">
+                <h2 className="text-xs font-bold leading-none" style={{ color: customization.secondaryColor || '#ffffff' }}>{customization.companyName}</h2>
+                <p className="text-[6px] tracking-widest uppercase opacity-95 leading-none mt-0.5" style={{ color: customization.secondaryColor || '#ffffff' }}>{customization.tagline}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Default Fallback
+    return (
+      <div className="flex flex-col items-center justify-center border border-dashed border-border rounded-lg p-6 bg-muted/20 text-muted-foreground w-full max-w-[250px] mx-auto text-center">
+        <Package className="h-8 w-8 mb-2 opacity-40 text-primary" />
+        <p className="text-xs font-semibold text-foreground">Custom Ordered Product</p>
+        <p className="text-[10px]">{productName}</p>
+      </div>
+    );
+  };
 
   // Mapping items to actual print products with fallback default stock values
   const [inventory, setInventory] = useState<InventoryItem[]>([
@@ -272,7 +457,12 @@ export function UserInventoryPage({ onMenuClick }: UserInventoryPageProps) {
                 rawStatus: order.status || 'pending',
                 paymentStatus: order.paymentStatus || 'pending',
                 allowedPaymentMethod: order.allowedPaymentMethod || 'none',
-                customizations
+                customizations,
+                subtotal: order.subtotal || 0,
+                tax: order.tax || 0,
+                shipping: order.shipping || 0,
+                total: order.total || 0,
+                deliveryNotes: order.delivery?.notes || ''
               };
             });
             setOrders(mappedOrders);
@@ -636,49 +826,57 @@ export function UserInventoryPage({ onMenuClick }: UserInventoryPageProps) {
                           )
                         )}
 
-                        {/* Order Timeline Section (Visible only when Paid) */}
+                        {/* Order Timeline Section & Print Preview (Visible only when Paid) */}
                         {order.paymentStatus === 'paid' && (
-                          <div className="p-4 bg-muted/40 rounded-xl border border-border/50 space-y-4">
-                            <h5 className="font-bold text-primary text-[10px] uppercase tracking-wider">
-                              Order Delivery & Production Timeline
-                            </h5>
-                            <div className="relative pl-2">
-                              {getTimelineSteps(order).map((step, index, array) => (
-                                <div key={index} className="relative pb-6 last:pb-0">
-                                  {index < array.length - 1 && (
-                                    <div 
-                                      className={`absolute left-3 top-6 w-0.5 h-full -ml-px ${
-                                        step.completed ? 'bg-emerald-500' : 'bg-border'
-                                      }`}
-                                    />
-                                  )}
-                                  <div className="relative flex items-start gap-4">
-                                    <div className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${
-                                      step.completed 
-                                        ? 'bg-emerald-500 border-emerald-500' 
-                                        : step.active 
-                                        ? 'bg-primary border-primary animate-pulse' 
-                                        : 'bg-background border-border'
-                                    }`}>
-                                      {step.completed ? (
-                                        <CheckCircle className="h-3 w-3 text-white" />
-                                      ) : step.active ? (
-                                        <Clock className="h-3 w-3 text-white" />
-                                      ) : (
-                                        <div className="h-1.5 w-1.5 rounded-full bg-border" />
-                                      )}
-                                    </div>
-                                    <div className="flex-1 pt-0.5">
-                                      <p className={`text-xs font-semibold ${
-                                        step.completed || step.active ? 'text-foreground' : 'text-muted-foreground'
+                          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-4 bg-muted/40 rounded-xl border border-border/50">
+                            <div className="md:col-span-7 space-y-4">
+                              <h5 className="font-bold text-primary text-[10px] uppercase tracking-wider">
+                                Order Delivery & Production Timeline
+                              </h5>
+                              <div className="relative pl-2">
+                                {getTimelineSteps(order).map((step, index, array) => (
+                                  <div key={index} className="relative pb-6 last:pb-0">
+                                    {index < array.length - 1 && (
+                                      <div 
+                                        className={`absolute left-3 top-6 w-0.5 h-full -ml-px ${
+                                          step.completed ? 'bg-emerald-500' : 'bg-border'
+                                        }`}
+                                      />
+                                    )}
+                                    <div className="relative flex items-start gap-4">
+                                      <div className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${
+                                        step.completed 
+                                          ? 'bg-emerald-500 border-emerald-500' 
+                                          : step.active 
+                                          ? 'bg-primary border-primary animate-pulse' 
+                                          : 'bg-background border-border'
                                       }`}>
-                                        {step.label}
-                                      </p>
-                                      <p className="text-[10px] text-muted-foreground mt-0.5">{step.date}</p>
+                                        {step.completed ? (
+                                          <CheckCircle className="h-3 w-3 text-white" />
+                                        ) : step.active ? (
+                                          <Clock className="h-3 w-3 text-white" />
+                                        ) : (
+                                          <div className="h-1.5 w-1.5 rounded-full bg-border" />
+                                        )}
+                                      </div>
+                                      <div className="flex-1 pt-0.5">
+                                        <p className={`text-xs font-semibold ${
+                                          step.completed || step.active ? 'text-foreground' : 'text-muted-foreground'
+                                        }`}>
+                                          {step.label}
+                                        </p>
+                                        <p className="text-[10px] text-muted-foreground mt-0.5">{step.date}</p>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              ))}
+                                ))}
+                              </div>
+                            </div>
+                            <div className="md:col-span-5 border-t md:border-t-0 md:border-l border-border/40 pt-4 md:pt-0 md:pl-6 flex flex-col items-center justify-start text-left">
+                              <h5 className="font-bold text-primary text-[10px] uppercase tracking-wider mb-4 self-start">
+                                Print Preview
+                              </h5>
+                              {renderDesignPreview(order.customizations?.[0], order.name)}
                             </div>
                           </div>
                         )}
@@ -710,6 +908,41 @@ export function UserInventoryPage({ onMenuClick }: UserInventoryPageProps) {
                             </div>
                           );
                         })}
+
+                        {/* Delivery Location & Notes (Kothai) */}
+                        <div className="space-y-2">
+                          <h5 className="font-bold text-primary text-[10px] uppercase tracking-wider">
+                            Delivery Notes & Location (Kothai)
+                          </h5>
+                          <div className="p-3 bg-muted/40 border border-border rounded-lg text-xs leading-relaxed whitespace-pre-wrap font-sans text-left">
+                            {order.deliveryNotes || 'No shipping or pickup details specified.'}
+                          </div>
+                        </div>
+
+                        {/* Invoice Breakdown */}
+                        <div className="space-y-2">
+                          <h5 className="font-bold text-primary text-[10px] uppercase tracking-wider">
+                            Order Invoice Breakdown
+                          </h5>
+                          <div className="p-3 bg-muted/20 border border-border rounded-lg text-xs space-y-1.5 w-full max-w-md text-left">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground text-[10px]">Subtotal</span>
+                              <span className="font-medium text-foreground">${order.subtotal?.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground text-[10px]">Tax</span>
+                              <span className="font-medium text-foreground">${order.tax?.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground text-[10px]">Shipping</span>
+                              <span className="font-medium text-foreground">${order.shipping?.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between font-bold text-xs border-t border-border/60 pt-1.5 mt-1 text-primary">
+                              <span>Grand Total</span>
+                              <span>${order.total?.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
