@@ -191,6 +191,8 @@ export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
     } finally {
       setSavingPaymentOption(false);
     }
+  };
+
   const handleUpdateStatus = async () => {
     if (!selectedOrderData) return;
     const token = localStorage.getItem('token');
