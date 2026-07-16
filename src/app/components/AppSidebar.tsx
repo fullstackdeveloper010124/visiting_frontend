@@ -113,7 +113,7 @@ export function AppSidebar({ userRole, isOpen, onClose, onLogout }: AppSidebarPr
     return location.pathname.startsWith(href);
   };
 
-  const getRoleLabel = (role: UserRole): string => {
+  function getRoleLabel(role: UserRole): string {
     const roleLabels: Record<UserRole, string> = {
       user: 'User',
       super_user: 'Super User',
@@ -127,9 +127,9 @@ export function AppSidebar({ userRole, isOpen, onClose, onLogout }: AppSidebarPr
       it_administrator: 'IT Administrator',
     };
     return roleLabels[role];
-  };
+  }
 
-  const getRoleColor = (role: UserRole): string => {
+  function getRoleColor(role: UserRole): string {
     const roleColors: Record<UserRole, string> = {
       user: 'bg-gray-500',
       super_user: 'bg-red-500',
@@ -143,7 +143,7 @@ export function AppSidebar({ userRole, isOpen, onClose, onLogout }: AppSidebarPr
       it_administrator: 'bg-cyan-500',
     };
     return roleColors[role];
-  };
+  }
 
   return (
     <>
