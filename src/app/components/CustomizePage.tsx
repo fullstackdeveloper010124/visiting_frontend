@@ -113,6 +113,8 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
   const [approvalSentEmail, setApprovalSentEmail] = useState('');
   const [testApprovalUrl, setTestApprovalUrl] = useState('');
+  const [draftStatus, setDraftStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const isLoadedRef = useRef(false);
 
   // Fetch Admin custom configurations on mount
   useEffect(() => {
@@ -202,13 +204,127 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
               return link;
             }));
           }
+
+          // Fetch saved design draft if it exists
+          try {
+            const draftRes = await fetch('/api/v1/drafts/business_card', {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const draftData = await draftRes.json();
+            if (draftRes.ok && draftData.success && draftData.data) {
+              const draft = draftData.data;
+              if (draft.companyName) setCompanyName(draft.companyName);
+              if (draft.tagline) setTagline(draft.tagline);
+              if (draft.personName) setPersonName(draft.personName);
+              if (draft.jobTitle) setJobTitle(draft.jobTitle);
+              if (draft.phone) setPhone(draft.phone);
+              if (draft.email) setEmail(draft.email);
+              if (draft.website) setWebsite(draft.website);
+              if (draft.address1) setAddress1(draft.address1);
+              if (draft.address2) setAddress2(draft.address2);
+              if (draft.address3) setAddress3(draft.address3);
+              if (draft.primaryColor) setPrimaryColor(draft.primaryColor);
+              if (draft.secondaryColor) setSecondaryColor(draft.secondaryColor);
+              if (draft.textColor) setTextColor(draft.textColor);
+              if (draft.fontFamily) setFontFamily(draft.fontFamily);
+              if (draft.finishedSize) setFinishedSize(draft.finishedSize);
+              if (draft.colorOptions) setColorOptions(draft.colorOptions);
+              if (draft.printConfig) setPrintConfig(draft.printConfig);
+              if (draft.sheetSize) setSheetSize(draft.sheetSize);
+              if (draft.cardsPerSheet) setCardsPerSheet(draft.cardsPerSheet);
+              if (draft.pricingOption) setPricingOption(draft.pricingOption);
+              if (draft.socialLinks) setSocialLinks(draft.socialLinks);
+              if (draft.frontBackground) setFrontBackground(draft.frontBackground);
+              if (draft.uploadedLogo) setUploadedLogo(draft.uploadedLogo);
+            }
+          } catch (draftErr) {
+            console.error('Failed to load design draft:', draftErr);
+          }
         }
       } catch (err) {
         console.error('Failed to load card studio config defaults:', err);
+      } finally {
+        isLoadedRef.current = true;
       }
     };
     loadConfig();
   }, []);
+
+  // Trigger saving status when inputs change
+  useEffect(() => {
+    if (!isLoadedRef.current) return;
+    setDraftStatus('saving');
+  }, [
+    companyName, tagline, personName, jobTitle, phone, email, website,
+    address1, address2, address3, primaryColor, secondaryColor, textColor,
+    fontFamily, finishedSize, colorOptions, printConfig, sheetSize,
+    cardsPerSheet, pricingOption, socialLinks, frontBackground, uploadedLogo
+  ]);
+
+  // Debounced auto-save
+  useEffect(() => {
+    if (!isLoadedRef.current) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch('/api/v1/drafts/business_card', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            designDetails: {
+              companyName,
+              tagline,
+              personName,
+              jobTitle,
+              phone,
+              email,
+              website,
+              address1,
+              address2,
+              address3,
+              primaryColor,
+              secondaryColor,
+              textColor,
+              fontFamily,
+              finishedSize,
+              colorOptions,
+              printConfig,
+              sheetSize,
+              cardsPerSheet,
+              pricingOption,
+              socialLinks,
+              frontBackground,
+              uploadedLogo
+            }
+          })
+        });
+        if (response.ok) {
+          setDraftStatus('saved');
+          const idleTimer = setTimeout(() => setDraftStatus('idle'), 2000);
+          return () => clearTimeout(idleTimer);
+        } else {
+          setDraftStatus('idle');
+        }
+      } catch (err) {
+        console.error('Failed to auto-save design draft:', err);
+        setDraftStatus('idle');
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [
+    companyName, tagline, personName, jobTitle, phone, email, website,
+    address1, address2, address3, primaryColor, secondaryColor, textColor,
+    fontFamily, finishedSize, colorOptions, printConfig, sheetSize,
+    cardsPerSheet, pricingOption, socialLinks, frontBackground, uploadedLogo
+  ]);
+
 
   const handleMeasurementSelection = (value: string) => {
     setMeasurement(value);
@@ -837,8 +953,10 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
           <div className="flex-1 lg:flex-[1.5] bg-white dark:bg-white text-slate-900 dark:text-slate-900 border-l border-border p-4 md:p-8 overflow-y-auto relative flex flex-col items-center">
             
             <div className="w-full max-w-2xl mb-8 flex items-center justify-between">
-               <div>
+               <div className="flex items-center gap-3">
                   <h2 className="font-semibold text-lg flex items-center"><CheckCircle className="mr-2 h-5 w-5 text-emerald-500"/> Print Preview</h2>
+                  {draftStatus === 'saving' && <span className="text-xs text-muted-foreground animate-pulse">Saving draft...</span>}
+                  {draftStatus === 'saved' && <span className="text-xs text-emerald-500 font-medium">Draft saved</span>}
                </div>
                <Button 
                  className="bg-gradient-to-r from-emerald-500 to-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all border-0 text-white flex items-center" 
@@ -1008,8 +1126,59 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
               <p className="text-xs text-muted-foreground text-center">
                 Please check your inbox at <span className="font-medium text-foreground">{approvalSentEmail}</span> to review and approve the design.
               </p>
+              {/* Design Preview */}
+              <div className="space-y-2 text-center my-4">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Design Preview (Front & Back)</p>
+                <div className="grid grid-cols-2 gap-4 max-w-[360px] mx-auto">
+                  {/* Front Side */}
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase">Front</span>
+                    <div className="w-full aspect-[3.5/2] rounded border border-border shadow overflow-hidden relative text-left bg-white"
+                         style={{ 
+                           backgroundColor: secondaryColor || '#ffffff', 
+                           color: textColor || '#1e293b',
+                           fontFamily: getFontFamily(),
+                         }}>
+                      <div className="absolute top-0 right-0 p-1 text-right flex flex-col items-end scale-[0.55] origin-top-right">
+                        <span className="text-[7px] font-bold tracking-wider uppercase opacity-75">{companyName}</span>
+                        <span className="text-[5px] tracking-wider opacity-60 italic">{tagline}</span>
+                      </div>
+                      <div className="absolute bottom-0 left-0 p-1 space-y-0.5 max-w-[80%] scale-[0.55] origin-bottom-left leading-tight">
+                        <h3 className="text-[10px] font-bold">{personName}</h3>
+                        <p className="text-[6px] font-medium tracking-wide opacity-85">{jobTitle}</p>
+                        <div className="pt-0.5 text-[4px] space-y-0.2 opacity-85 leading-normal">
+                          {phone && <div>📞 {phone}</div>}
+                          {email && <div>✉️ {email}</div>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Back Side */}
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase">Back</span>
+                    <div className="w-full aspect-[3.5/2] rounded border border-border shadow overflow-hidden relative flex flex-col items-center justify-center p-2"
+                         style={{ 
+                           backgroundColor: frontBackground ? 'transparent' : primaryColor, 
+                           backgroundImage: frontBackground ? `url(${frontBackground})` : 'none',
+                           backgroundSize: 'cover',
+                           fontFamily: getFontFamily() 
+                         }}>
+                      {!frontBackground && (
+                        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white to-transparent pointer-events-none"></div>
+                      )}
+                      <div className="text-center scale-[0.55] origin-center bg-black/10 backdrop-blur-sm p-1 rounded border border-white/10 w-fit">
+                        <h2 className="text-[10px] font-bold leading-none" style={{ color: secondaryColor || '#ffffff' }}>{companyName}</h2>
+                        <p className="text-[5px] tracking-widest uppercase opacity-95 leading-none mt-0.5" style={{ color: secondaryColor || '#ffffff' }}>{tagline}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
               {/* Developer Testing Convenience Box */}
-              {testApprovalUrl && (
+              {testApprovalUrl && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
                 <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-left space-y-1.5">
                   <p className="font-bold text-blue-500">Developer Testing Help:</p>
                   <p className="text-muted-foreground">Since no SMTP server is configured, the email was printed to the files <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-foreground">server/email-log.txt</code> and <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-foreground">server/email-log.html</code>. You can copy the link below to open the approval page directly, or open the HTML log file in a web browser to view the email with the styled **Approve Design** button:</p>

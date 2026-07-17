@@ -25,7 +25,16 @@ export function SignupPage({ onSignup }: SignupPageProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Validate password strength: 8-12 characters, A-Z, a-z, symbols, numbers
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,12}$/;
+    if (!password || !passwordRegex.test(password)) {
+      setError('Password must be 8-12 characters long and include at least one uppercase letter (A-Z), one lowercase letter (a-z), one number (0-9), and one special symbol.');
+      return;
+    }
+
     setSubmitting(true);
+
 
     try {
       const response = await fetch('/api/v1/auth/register', {
@@ -139,7 +148,11 @@ export function SignupPage({ onSignup }: SignupPageProps) {
                 onChange={(e) => setPassword(e.target.value)}
                 required 
               />
+              <p className="text-[10px] text-muted-foreground leading-normal mt-1">
+                Password must be 8-12 characters, with at least one uppercase (A-Z), lowercase (a-z), number (0-9), and special symbol.
+              </p>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="role">Choose Your Role</Label>
               <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>

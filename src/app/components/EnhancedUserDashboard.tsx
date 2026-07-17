@@ -21,6 +21,9 @@ interface UserDashboardProps {
 export function EnhancedUserDashboard({ onMenuClick }: UserDashboardProps) {
   const [activeTab, setActiveTab] = useState("dashboard");
   const navigate = useNavigate();
+  const userName = localStorage.getItem('userName') || '';
+  const userEmail = localStorage.getItem('userEmail') || '';
+  const userRole = localStorage.getItem('userRole') || '';
 
   // Dynamic user's active orders state
   const [activeOrders, setActiveOrders] = useState<any[]>([
@@ -106,7 +109,22 @@ export function EnhancedUserDashboard({ onMenuClick }: UserDashboardProps) {
               <p className="text-sm text-muted-foreground mt-1">Manage all your printing needs seamlessly</p>
             </div>
           </div>
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-4">
+            {userName && (
+              <div className="flex items-center gap-3 border-r border-border pr-4 mr-1">
+                <div className="text-right">
+                  <p className="text-xs font-semibold text-foreground leading-normal">
+                    {userName} <span className="text-muted-foreground font-normal">and</span> <span className="text-primary font-mono">{userEmail}</span>
+                  </p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mt-0.5">
+                    Role: Customer
+                  </p>
+                </div>
+                <Badge variant="outline" className="bg-gray-500/10 text-gray-500 border-gray-500/20 text-[9px] font-bold uppercase py-0.5">
+                  Customer
+                </Badge>
+              </div>
+            )}
             <Button onClick={() => navigate('/customize')} variant="outline" className="shadow-sm border-primary/20 text-primary bg-primary/5 hover:bg-primary/10 transition-colors">
               Design Card Online
             </Button>

@@ -59,7 +59,7 @@ export function AppSidebar({ userRole, isOpen, onClose, onLogout }: AppSidebarPr
     // Super User / Admin specific navigation
     { title: 'Products', href: '/products', icon: Package, roles: ['super_user', 'procurement'] },
     { title: 'Customize', href: '/customize', icon: Printer, roles: ['super_user'] },
-    { title: 'My Orders', href: '/orders', icon: ShoppingCart, roles: ['super_user', 'accounting', 'order_processor'] },
+    { title: 'My Orders', href: '/orders', icon: ShoppingCart, roles: ['accounting'] },
     { title: 'Inventory Supplies', href: '/inventory', icon: Package, roles: ['procurement'] },
     
     // User role specific navigation
@@ -71,7 +71,7 @@ export function AppSidebar({ userRole, isOpen, onClose, onLogout }: AppSidebarPr
     { title: 'Help', href: '/help', icon: HelpCircle, roles: ['user'] },
     
     // Inventory Admin
-    { title: 'Inventory & Stock Management', href: '/admin/inventory', icon: Package, roles: ['super_user', 'inventory_admin'] },
+    { title: 'Inventory and Stock Management', href: '/admin/inventory', icon: Package, roles: ['super_user', 'inventory_admin'] },
     
     // Order Processor
     { title: 'Order Processing', href: '/orders', icon: ClipboardList, roles: ['super_user', 'order_processor'] },

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { AppHeader } from './AppHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Button } from './ui/button';
@@ -44,6 +44,90 @@ export function EnvelopesCustomizePage({ onMenuClick }: EnvelopesCustomizePagePr
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
   const [approvalSentEmail, setApprovalSentEmail] = useState('');
   const [testApprovalUrl, setTestApprovalUrl] = useState('');
+  const [draftStatus, setDraftStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const isLoadedRef = useRef(false);
+
+  // Fetch saved design draft if it exists
+  useEffect(() => {
+    const loadDraft = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          const draftRes = await fetch('/api/v1/drafts/envelope', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const draftData = await draftRes.json();
+          if (draftRes.ok && draftData.success && draftData.data) {
+            const draft = draftData.data;
+            if (draft.measurement) {
+              setMeasurement(draft.measurement);
+              const preset = envelopePresets.find(p => p.measurement === draft.measurement);
+              if (preset) {
+                setBoxes(preset.boxes);
+                setInStock(preset.inStock);
+                setOrdered(preset.ordered);
+                setBalance(preset.balance);
+                setMinQuantity(preset.minQuantity);
+                setCostPerBox(preset.costPerBox);
+              }
+            }
+            if (draft.uploadedFront) setUploadedFront(draft.uploadedFront);
+            if (draft.uploadedBack) setUploadedBack(draft.uploadedBack);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load envelope draft:', err);
+      } finally {
+        isLoadedRef.current = true;
+      }
+    };
+    loadDraft();
+  }, []);
+
+  // Trigger saving status when inputs change
+  useEffect(() => {
+    if (!isLoadedRef.current) return;
+    setDraftStatus('saving');
+  }, [measurement, uploadedFront, uploadedBack]);
+
+  // Debounced auto-save
+  useEffect(() => {
+    if (!isLoadedRef.current) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch('/api/v1/drafts/envelope', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            designDetails: {
+              measurement,
+              uploadedFront,
+              uploadedBack
+            }
+          })
+        });
+        if (response.ok) {
+          setDraftStatus('saved');
+          const idleTimer = setTimeout(() => setDraftStatus('idle'), 2000);
+          return () => clearTimeout(idleTimer);
+        } else {
+          setDraftStatus('idle');
+        }
+      } catch (err) {
+        console.error('Failed to auto-save envelope draft:', err);
+        setDraftStatus('idle');
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [measurement, uploadedFront, uploadedBack]);
 
   const handleSendForApproval = async () => {
     const token = localStorage.getItem('token');
@@ -206,8 +290,10 @@ export function EnvelopesCustomizePage({ onMenuClick }: EnvelopesCustomizePagePr
           <div className="flex-1 lg:flex-[1.5] bg-muted/30 p-4 md:p-8 overflow-y-auto relative flex flex-col items-center">
 
             <div className="w-full max-w-2xl mb-8 flex items-center justify-between">
-              <div>
+              <div className="flex items-center gap-3">
                 <h2 className="font-semibold text-lg flex items-center"><CheckCircle className="mr-2 h-5 w-5 text-emerald-500" /> Print Preview</h2>
+                {draftStatus === 'saving' && <span className="text-xs text-muted-foreground animate-pulse">Saving draft...</span>}
+                {draftStatus === 'saved' && <span className="text-xs text-emerald-500 font-medium">Draft saved</span>}
               </div>
               <Button 
                 className="bg-gradient-to-r from-emerald-500 to-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all border-0 text-white flex items-center" 
@@ -292,8 +378,37 @@ export function EnvelopesCustomizePage({ onMenuClick }: EnvelopesCustomizePagePr
                 Please check your inbox at <span className="font-medium text-foreground">{approvalSentEmail}</span> to review and approve the design.
               </p>
 
+              {/* Design Preview */}
+              {(uploadedFront || uploadedBack) && (
+                <div className="space-y-3 text-center my-3 max-w-[200px] mx-auto">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Design Previews</p>
+                  {uploadedFront && (
+                    <div className="space-y-0.5 text-left">
+                      <span className="text-[8px] font-bold text-muted-foreground uppercase">Front Side</span>
+                      <div className="w-full aspect-[9.5/4.125] rounded border border-border shadow-sm bg-white bg-no-repeat bg-center"
+                           style={{ 
+                             backgroundImage: uploadedFront !== '/images/envelope_front_demo.png' && uploadedFront.startsWith('/') ? `url(${uploadedFront})` : 'none',
+                             backgroundSize: 'cover',
+                           }}
+                      />
+                    </div>
+                  )}
+                  {uploadedBack && (
+                    <div className="space-y-0.5 text-left">
+                      <span className="text-[8px] font-bold text-muted-foreground uppercase">Back Side</span>
+                      <div className="w-full aspect-[9.5/4.125] rounded border border-border shadow-sm bg-white bg-no-repeat bg-center"
+                           style={{ 
+                             backgroundImage: uploadedBack !== '/images/envelope_back_demo.png' && uploadedBack.startsWith('/') ? `url(${uploadedBack})` : 'none',
+                             backgroundSize: 'cover',
+                           }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Developer Testing Convenience Box */}
-              {testApprovalUrl && (
+              {testApprovalUrl && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
                 <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-left space-y-1.5">
                   <p className="font-bold text-blue-500">Developer Testing Help:</p>
                   <p className="text-muted-foreground">Since no SMTP server is configured, the email was printed to the files <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-foreground">server/email-log.txt</code> and <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-foreground">server/email-log.html</code>. You can copy the link below to open the approval page directly, or open the HTML log file in a web browser to view the email with the styled **Approve Design** button:</p>

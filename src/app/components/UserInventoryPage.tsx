@@ -462,8 +462,10 @@ export function UserInventoryPage({ onMenuClick }: UserInventoryPageProps) {
                 tax: order.tax || 0,
                 shipping: order.shipping || 0,
                 total: order.total || 0,
-                deliveryNotes: order.delivery?.notes || ''
+                deliveryNotes: order.delivery?.notes || '',
+                pickupAddress: order.delivery?.pickupAddress || ''
               };
+
             });
             setOrders(mappedOrders);
 
@@ -826,60 +828,59 @@ export function UserInventoryPage({ onMenuClick }: UserInventoryPageProps) {
                           )
                         )}
 
-                        {/* Order Timeline Section & Print Preview (Visible only when Paid) */}
-                        {order.paymentStatus === 'paid' && (
-                          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-4 bg-muted/40 rounded-xl border border-border/50">
-                            <div className="md:col-span-7 space-y-4">
-                              <h5 className="font-bold text-primary text-[10px] uppercase tracking-wider">
-                                Order Delivery & Production Timeline
-                              </h5>
-                              <div className="relative pl-2">
-                                {getTimelineSteps(order).map((step, index, array) => (
-                                  <div key={index} className="relative pb-6 last:pb-0">
-                                    {index < array.length - 1 && (
-                                      <div 
-                                        className={`absolute left-3 top-6 w-0.5 h-full -ml-px ${
-                                          step.completed ? 'bg-emerald-500' : 'bg-border'
-                                        }`}
-                                      />
-                                    )}
-                                    <div className="relative flex items-start gap-4">
-                                      <div className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${
-                                        step.completed 
-                                          ? 'bg-emerald-500 border-emerald-500' 
-                                          : step.active 
-                                          ? 'bg-primary border-primary animate-pulse' 
-                                          : 'bg-background border-border'
+                        {/* Order Timeline Section & Print Preview */}
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-4 bg-muted/40 rounded-xl border border-border/50">
+                          <div className="md:col-span-7 space-y-4">
+                            <h5 className="font-bold text-primary text-[10px] uppercase tracking-wider">
+                              Order Delivery & Production Timeline
+                            </h5>
+                            <div className="relative pl-2">
+                              {getTimelineSteps(order).map((step, index, array) => (
+                                <div key={index} className="relative pb-6 last:pb-0">
+                                  {index < array.length - 1 && (
+                                    <div 
+                                      className={`absolute left-3 top-6 w-0.5 h-full -ml-px ${
+                                        step.completed ? 'bg-emerald-500' : 'bg-border'
+                                      }`}
+                                    />
+                                  )}
+                                  <div className="relative flex items-start gap-4">
+                                    <div className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${
+                                      step.completed 
+                                        ? 'bg-emerald-500 border-emerald-500' 
+                                        : step.active 
+                                        ? 'bg-primary border-primary animate-pulse' 
+                                        : 'bg-background border-border'
+                                    }`}>
+                                      {step.completed ? (
+                                        <CheckCircle className="h-3 w-3 text-white" />
+                                      ) : step.active ? (
+                                        <Clock className="h-3 w-3 text-white" />
+                                      ) : (
+                                        <div className="h-1.5 w-1.5 rounded-full bg-border" />
+                                      )}
+                                    </div>
+                                    <div className="flex-1 pt-0.5">
+                                      <p className={`text-xs font-semibold ${
+                                        step.completed || step.active ? 'text-foreground' : 'text-muted-foreground'
                                       }`}>
-                                        {step.completed ? (
-                                          <CheckCircle className="h-3 w-3 text-white" />
-                                        ) : step.active ? (
-                                          <Clock className="h-3 w-3 text-white" />
-                                        ) : (
-                                          <div className="h-1.5 w-1.5 rounded-full bg-border" />
-                                        )}
-                                      </div>
-                                      <div className="flex-1 pt-0.5">
-                                        <p className={`text-xs font-semibold ${
-                                          step.completed || step.active ? 'text-foreground' : 'text-muted-foreground'
-                                        }`}>
-                                          {step.label}
-                                        </p>
-                                        <p className="text-[10px] text-muted-foreground mt-0.5">{step.date}</p>
-                                      </div>
+                                        {step.label}
+                                      </p>
+                                      <p className="text-[10px] text-muted-foreground mt-0.5">{step.date}</p>
                                     </div>
                                   </div>
-                                ))}
-                              </div>
-                            </div>
-                            <div className="md:col-span-5 border-t md:border-t-0 md:border-l border-border/40 pt-4 md:pt-0 md:pl-6 flex flex-col items-center justify-start text-left">
-                              <h5 className="font-bold text-primary text-[10px] uppercase tracking-wider mb-4 self-start">
-                                Print Preview
-                              </h5>
-                              {renderDesignPreview(order.customizations?.[0], order.name)}
+                                </div>
+                              ))}
                             </div>
                           </div>
-                        )}
+                          <div className="md:col-span-5 border-t md:border-t-0 md:border-l border-border/40 pt-4 md:pt-0 md:pl-6 flex flex-col items-center justify-start text-left">
+                            <h5 className="font-bold text-primary text-[10px] uppercase tracking-wider mb-4 self-start">
+                              Print Preview
+                            </h5>
+                            {renderDesignPreview(order.customizations?.[0], order.name)}
+                          </div>
+                        </div>
+
 
                         {order.customizations && order.customizations.length > 0 && order.customizations.map((customization: any, idx: number) => {
                           if (!customization) return null;
@@ -910,14 +911,28 @@ export function UserInventoryPage({ onMenuClick }: UserInventoryPageProps) {
                         })}
 
                         {/* Delivery Location & Notes (Kothai) */}
-                        <div className="space-y-2">
-                          <h5 className="font-bold text-primary text-[10px] uppercase tracking-wider">
-                            Delivery Notes & Location (Kothai)
-                          </h5>
-                          <div className="p-3 bg-muted/40 border border-border rounded-lg text-xs leading-relaxed whitespace-pre-wrap font-sans text-left">
-                            {order.deliveryNotes || 'No shipping or pickup details specified.'}
+                        <div className="space-y-3">
+                          {order.pickupAddress && (
+                            <div className="space-y-1 text-left">
+                              <h5 className="font-bold text-amber-600 text-[10px] uppercase tracking-wider">
+                                Assigned Pickup Address (Super Admin)
+                              </h5>
+                              <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg text-xs font-semibold leading-relaxed font-sans">
+                                <p className="text-slate-900">{order.pickupAddress}</p>
+                                <p className="text-[10px] text-muted-foreground font-normal mt-1">Please pick up your order items from this location.</p>
+                              </div>
+                            </div>
+                          )}
+                          <div className="space-y-2">
+                            <h5 className="font-bold text-primary text-[10px] uppercase tracking-wider">
+                              Delivery Notes & Location (Kothai)
+                            </h5>
+                            <div className="p-3 bg-muted/40 border border-border rounded-lg text-xs leading-relaxed whitespace-pre-wrap font-sans text-left">
+                              {order.deliveryNotes || 'No shipping or pickup details specified.'}
+                            </div>
                           </div>
                         </div>
+
 
                         {/* Invoice Breakdown */}
                         <div className="space-y-2">

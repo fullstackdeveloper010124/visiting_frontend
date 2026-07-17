@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Label } from './ui/label';
+import { Input } from './ui/input';
+
 import { Package, Clock, CheckCircle, Truck, MapPin } from 'lucide-react';
 import { StatusBadge, OrderStatus } from './StatusBadge';
 import { useState, useEffect } from 'react';
@@ -20,7 +22,12 @@ interface Order {
   date: string;
   estimatedDelivery: string;
   deliveryNotes: string;
+  pickupAddress?: string;
+  customizations?: any[];
 }
+
+
+
 
 interface TimelineStep {
   label: string;
@@ -51,7 +58,8 @@ export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
       allowedPaymentMethod: 'paypal',
       date: '2026-06-01',
       estimatedDelivery: '2026-06-08',
-      deliveryNotes: ''
+      deliveryNotes: '',
+      customizations: []
     },
     { 
       id: 'ORD-2026-002', 
@@ -64,7 +72,8 @@ export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
       allowedPaymentMethod: 'credit_card',
       date: '2026-06-02',
       estimatedDelivery: '2026-06-09',
-      deliveryNotes: ''
+      deliveryNotes: '',
+      customizations: []
     },
     { 
       id: 'ORD-2026-003', 
@@ -77,8 +86,10 @@ export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
       allowedPaymentMethod: 'none',
       date: '2026-05-28',
       estimatedDelivery: '2026-06-04',
-      deliveryNotes: ''
+      deliveryNotes: '',
+      customizations: []
     },
+
   ]);
 
   const selectedOrderData = orders.find(o => o.id === selectedOrder);
@@ -143,21 +154,34 @@ export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
   // States for Admin status update control
   const [adminOrderStatus, setAdminOrderStatus] = useState('pending');
   const [adminPaymentStatus, setAdminPaymentStatus] = useState('pending');
+  const [adminNotes, setAdminNotes] = useState('');
+  const [adminPickupAddress, setAdminPickupAddress] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [statusUpdateSuccess, setStatusUpdateSuccess] = useState(false);
   const [statusUpdateError, setStatusUpdateError] = useState<string | null>(null);
+
+  // States for Pickup Locations Management
+  const [pickupLocations, setPickupLocations] = useState<any[]>([]);
+  const [newLocationName, setNewLocationName] = useState('');
+  const [newLocationAddress, setNewLocationAddress] = useState('');
+  const [newLocationPhone, setNewLocationPhone] = useState('');
+  const [addingLocation, setAddingLocation] = useState(false);
 
   useEffect(() => {
     if (selectedOrderData) {
       setAdminSetPaymentMethod(selectedOrderData.allowedPaymentMethod || 'none');
       setAdminOrderStatus(selectedOrderData.status || 'pending');
       setAdminPaymentStatus(selectedOrderData.paymentStatus || 'pending');
+      setAdminNotes(selectedOrderData.deliveryNotes || '');
+      setAdminPickupAddress(selectedOrderData.pickupAddress || '');
       setAdminSaveSuccess(false);
       setAdminSaveError(null);
       setStatusUpdateSuccess(false);
       setStatusUpdateError(null);
     }
   }, [selectedOrder, selectedOrderData]);
+
+
 
   const handleSavePaymentOption = async () => {
     if (!selectedOrderData) return;
@@ -210,7 +234,9 @@ export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
         },
         body: JSON.stringify({
           status: adminOrderStatus,
-          paymentStatus: adminPaymentStatus
+          paymentStatus: adminPaymentStatus,
+          notes: adminNotes,
+          pickupAddress: adminPickupAddress
         })
       });
       const resData = await response.json();
@@ -219,7 +245,9 @@ export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
         setOrders(prev => prev.map(o => o.dbId === selectedOrderData.dbId ? { 
           ...o, 
           status: adminOrderStatus as OrderStatus, 
-          paymentStatus: adminPaymentStatus as 'pending' | 'paid' | 'refunded' 
+          paymentStatus: adminPaymentStatus as 'pending' | 'paid' | 'refunded',
+          deliveryNotes: adminNotes,
+          pickupAddress: adminPickupAddress
         } : o));
       } else {
         setStatusUpdateError(resData.error || 'Failed to update status.');
@@ -229,6 +257,70 @@ export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
       setStatusUpdateError('Network error. Failed to update status.');
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  // Fetch Pickup Locations on mount
+  useEffect(() => {
+    const fetchLocations = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const response = await fetch('/api/v1/pickup-locations', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const resData = await response.json();
+        if (response.ok && resData.success) {
+          setPickupLocations(resData.data);
+        }
+      } catch (err) {
+        console.error('Failed to load pickup locations:', err);
+      }
+    };
+    fetchLocations();
+  }, []);
+
+  const handleAddPickupLocation = async () => {
+    if (!newLocationName.trim() || !newLocationAddress.trim()) {
+      alert('Name and Address are required.');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    setAddingLocation(true);
+    try {
+      const response = await fetch('/api/v1/pickup-locations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: newLocationName,
+          address: newLocationAddress,
+          phone: newLocationPhone
+        })
+      });
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        setPickupLocations(prev => [...prev, resData.data]);
+        const fullAddress = `${resData.data.name} - ${resData.data.address}${resData.data.phone ? ` (Phone: ${resData.data.phone})` : ''}`;
+        setAdminPickupAddress(fullAddress);
+        setNewLocationName('');
+        setNewLocationAddress('');
+        setNewLocationPhone('');
+        alert('Pickup location added and selected successfully!');
+      } else {
+        alert(resData.error || 'Failed to add pickup location.');
+      }
+    } catch (err) {
+      console.error('Error adding pickup location:', err);
+      alert('Network error. Failed to add.');
+    } finally {
+      setAddingLocation(false);
     }
   };
 
@@ -264,6 +356,11 @@ export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
               else if (order.status === 'printing') status = 'printing';
               else if (order.status === 'ready' || order.status === 'processing') status = 'processing';
 
+              // Gather customizations
+              const customizations = order.items && order.items.length > 0
+                ? order.items.map((item: any) => item.customization || null).filter(Boolean)
+                : [];
+
               return {
                 id: order.orderNumber || order._id,
                 dbId: order._id,
@@ -275,8 +372,11 @@ export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
                 allowedPaymentMethod: order.allowedPaymentMethod || 'none',
                 date: order.createdAt ? order.createdAt.slice(0, 10) : 'N/A',
                 estimatedDelivery: estDelivery.toISOString().slice(0, 10),
-                deliveryNotes: order.delivery?.notes || ''
+                deliveryNotes: order.delivery?.notes || '',
+                pickupAddress: order.delivery?.pickupAddress || '',
+                customizations
               };
+
             });
 
             setOrders(mappedOrders);
@@ -338,7 +438,192 @@ export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
     });
   };
 
+  const renderDesignPreview = (customization: any, productName: string) => {
+    if (!customization) {
+      return (
+        <div className="flex flex-col items-center justify-center border border-dashed border-border rounded-lg p-6 bg-muted/20 text-muted-foreground w-full max-w-[220px] mx-auto text-center">
+          <Package className="h-8 w-8 mb-2 opacity-40 text-primary" />
+          <p className="text-xs font-semibold text-foreground">Standard Printed Item</p>
+          <p className="text-[10px]">{productName}</p>
+        </div>
+      );
+    }
+
+    const getFontFamily = (family: string) => {
+      switch(family) {
+        case 'serif': return 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif';
+        case 'mono': return 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+        default: return 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+      }
+    };
+
+    // Envelope
+    if (customization.uploadedFront || customization.uploadedBack) {
+      return (
+        <div className="space-y-3 w-full max-w-[240px] mx-auto">
+          {customization.uploadedFront && (
+            <div className="space-y-1 text-left">
+              <span className="text-[8px] font-bold text-muted-foreground uppercase">Front Side</span>
+              <div 
+                className="w-full aspect-[9.5/4.125] rounded border border-border shadow-sm bg-white bg-no-repeat bg-center"
+                style={{
+                  backgroundImage: customization.uploadedFront !== '/images/envelope_front_demo.png' && customization.uploadedFront.startsWith('/') ? `url(${customization.uploadedFront})` : 'none',
+                  backgroundSize: 'cover',
+                }}
+              >
+                {(customization.uploadedFront === '/images/envelope_front_demo.png' || !customization.uploadedFront.startsWith('/')) && (
+                  <div className="h-full flex items-center justify-center text-[10px] text-muted-foreground">Front Preview</div>
+                )}
+              </div>
+            </div>
+          )}
+          {customization.uploadedBack && (
+            <div className="space-y-1 text-left">
+              <span className="text-[8px] font-bold text-muted-foreground uppercase">Back Side</span>
+              <div 
+                className="w-full aspect-[9.5/4.125] rounded border border-border shadow-sm bg-white bg-no-repeat bg-center"
+                style={{
+                  backgroundImage: customization.uploadedBack !== '/images/envelope_back_demo.png' && customization.uploadedBack.startsWith('/') ? `url(${customization.uploadedBack})` : 'none',
+                  backgroundSize: 'cover',
+                }}
+              >
+                {(customization.uploadedBack === '/images/envelope_back_demo.png' || !customization.uploadedBack.startsWith('/')) && (
+                  <div className="h-full flex items-center justify-center text-[10px] text-muted-foreground">Back Preview</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Letterhead
+    if (customization.uploadedLetterhead) {
+      return (
+        <div className="w-full max-w-[160px] mx-auto space-y-1 text-left">
+          <span className="text-[8px] font-bold text-muted-foreground uppercase">Letterhead Design</span>
+          <div 
+            className="w-full aspect-[8.5/11] rounded border border-border shadow-sm bg-white bg-no-repeat bg-center"
+            style={{
+              backgroundImage: `url(${customization.uploadedLetterhead})`,
+              backgroundSize: 'cover',
+            }}
+          />
+        </div>
+      );
+    }
+
+    // Notepad
+    if (customization.uploadedNotepad) {
+      return (
+        <div className="w-full max-w-[160px] mx-auto space-y-1 text-left">
+          <span className="text-[8px] font-bold text-muted-foreground uppercase">Notepad Design</span>
+          <div 
+            className="w-full aspect-[5.5/8.5] rounded border border-border shadow-sm bg-white bg-no-repeat bg-center"
+            style={{
+              backgroundImage: `url(${customization.uploadedNotepad})`,
+              backgroundSize: 'cover',
+            }}
+          />
+        </div>
+      );
+    }
+
+    // Folder
+    if (customization.uploadedFolder) {
+      return (
+        <div className="w-full max-w-[160px] mx-auto space-y-1 text-left">
+          <span className="text-[8px] font-bold text-muted-foreground uppercase">Presentation Folder</span>
+          <div 
+            className="w-full aspect-[9/12] rounded border border-border shadow-sm bg-white bg-no-repeat bg-center"
+            style={{
+              backgroundImage: `url(${customization.uploadedFolder})`,
+              backgroundSize: 'cover',
+            }}
+          />
+        </div>
+      );
+    }
+
+    // Compliment Slip
+    if (customization.uploadedSlip) {
+      return (
+        <div className="w-full max-w-[200px] mx-auto space-y-1 text-left">
+          <span className="text-[8px] font-bold text-muted-foreground uppercase">Compliment Slip</span>
+          <div 
+            className="w-full aspect-[8.5/3.5] rounded border border-border shadow-sm bg-white bg-no-repeat bg-center"
+            style={{
+              backgroundImage: `url(${customization.uploadedSlip})`,
+              backgroundSize: 'cover',
+            }}
+          />
+        </div>
+      );
+    }
+
+    // Business Card
+    if (customization.companyName || customization.personName) {
+      return (
+        <div className="space-y-3 w-full max-w-[200px] mx-auto">
+          {/* Front Side */}
+          <div className="space-y-1 text-left">
+            <span className="text-[8px] font-bold text-muted-foreground uppercase">Front Side</span>
+            <div 
+              className="w-full aspect-[3.5/2] rounded border border-border shadow-sm relative overflow-hidden text-left"
+              style={{
+                backgroundColor: customization.secondaryColor || '#ffffff',
+                fontFamily: getFontFamily(customization.fontFamily),
+                color: customization.textColor || '#1e293b',
+              }}
+            >
+              <div className="absolute top-0 right-0 p-1 text-right flex flex-col items-end scale-[0.6] origin-top-right">
+                <span className="text-[8px] font-bold tracking-wider uppercase opacity-75">{customization.companyName}</span>
+                <span className="text-[6px] tracking-wider opacity-60 italic">{customization.tagline}</span>
+              </div>
+              <div className="absolute bottom-0 left-0 p-1 space-y-0.5 max-w-[70%] scale-[0.6] origin-bottom-left leading-tight">
+                <h3 className="text-xs font-bold">{customization.personName}</h3>
+                <p className="text-[7px] font-medium tracking-wide opacity-85">{customization.jobTitle}</p>
+                <div className="pt-0.5 text-[5px] space-y-0.2 opacity-85 leading-normal">
+                  {customization.phone && <div>📞 {customization.phone}</div>}
+                  {customization.email && <div>✉️ {customization.email}</div>}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Back Side */}
+          <div className="space-y-1 text-left">
+            <span className="text-[8px] font-bold text-muted-foreground uppercase">Back Side</span>
+            <div 
+              className="w-full aspect-[3.5/2] rounded border border-border shadow-sm relative overflow-hidden flex flex-col items-center justify-center p-2"
+              style={{
+                backgroundColor: customization.primaryColor || '#10b981',
+                fontFamily: getFontFamily(customization.fontFamily),
+              }}
+            >
+              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white to-transparent pointer-events-none"></div>
+              <div className="text-center scale-[0.6] origin-center bg-black/10 backdrop-blur-sm p-1.5 rounded border border-white/10 w-fit">
+                <h2 className="text-xs font-bold leading-none" style={{ color: customization.secondaryColor || '#ffffff' }}>{customization.companyName}</h2>
+                <p className="text-[6px] tracking-widest uppercase opacity-95 leading-none mt-0.5" style={{ color: customization.secondaryColor || '#ffffff' }}>{customization.tagline}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Default Fallback
+    return (
+      <div className="flex flex-col items-center justify-center border border-dashed border-border rounded-lg p-6 bg-muted/20 text-muted-foreground w-full max-w-[200px] mx-auto text-center">
+        <Package className="h-8 w-8 mb-2 opacity-40 text-primary" />
+        <p className="text-xs font-semibold text-foreground">Custom Ordered Product</p>
+        <p className="text-[10px]">{productName}</p>
+      </div>
+    );
+  };
+
   return (
+
     <div className="flex flex-col h-screen overflow-hidden">
       <AppHeader onMenuClick={onMenuClick} />
       
@@ -493,13 +778,85 @@ export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
                             </div>
                           </div>
 
+                          {/* Delivery Notes / Shipping Address */}
+                          <div className="space-y-1 mt-3">
+                            <Label className="text-[10px] font-bold text-muted-foreground uppercase">Delivery Notes / Shipping Address</Label>
+                            <textarea 
+                              value={adminNotes} 
+                              onChange={e => setAdminNotes(e.target.value)}
+                              rows={5}
+                              className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-sans whitespace-pre-wrap"
+                              placeholder="Enter shipping address or delivery instructions..."
+                            />
+                          </div>
+
+                          {/* Pickup Address Select & Management */}
+                          <div className="space-y-2 mt-4 pt-3 border-t border-border/50">
+                            <div className="space-y-1">
+                              <Label className="text-[10px] font-bold text-muted-foreground uppercase">Assign Pickup Location Address</Label>
+                              <select 
+                                value={adminPickupAddress} 
+                                onChange={e => setAdminPickupAddress(e.target.value)}
+                                className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              >
+                                <option value="">-- No Pickup Location Assigned --</option>
+                                {pickupLocations.map((loc) => {
+                                  const fullAddress = `${loc.name} - ${loc.address}${loc.phone ? ` (Phone: ${loc.phone})` : ''}`;
+                                  return (
+                                    <option key={loc._id} value={fullAddress}>
+                                      {loc.name} ({loc.address.substring(0, 20)}...)
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            </div>
+
+                            {/* Add New Pickup Location Option */}
+                            <div className="p-3 bg-muted/40 rounded-lg border border-border/50 space-y-2 mt-2">
+                              <p className="text-[10px] font-bold text-foreground uppercase">Add New Pickup Location</p>
+                              <div className="grid grid-cols-1 gap-2">
+                                <Input 
+                                  placeholder="Location Name (e.g. Manhattan Hub)" 
+                                  value={newLocationName} 
+                                  onChange={(e: any) => setNewLocationName(e.target.value)}
+                                  className="text-xs h-8 bg-background"
+                                />
+                                <Input 
+                                  placeholder="Full Street Address" 
+                                  value={newLocationAddress} 
+                                  onChange={(e: any) => setNewLocationAddress(e.target.value)}
+                                  className="text-xs h-8 bg-background"
+                                />
+                                <div className="flex gap-2">
+                                  <Input 
+                                    placeholder="Phone (Optional)" 
+                                    value={newLocationPhone} 
+                                    onChange={(e: any) => setNewLocationPhone(e.target.value)}
+                                    className="text-xs h-8 bg-background flex-1"
+                                  />
+                                  <Button 
+                                    onClick={handleAddPickupLocation}
+
+                                    disabled={addingLocation}
+                                    type="button"
+                                    className="bg-secondary hover:bg-secondary/90 text-[10px] h-8 px-3 text-foreground font-semibold"
+                                  >
+                                    {addingLocation ? 'Adding...' : 'Add'}
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
                           <Button 
-                            className="bg-primary hover:bg-primary/90 text-white text-xs px-4 py-2 font-semibold h-9"
+                            className="bg-primary hover:bg-primary/90 text-white text-xs px-4 py-2 font-semibold h-9 mt-2"
                             onClick={handleUpdateStatus}
                             disabled={updatingStatus}
                           >
-                            {updatingStatus ? 'Updating...' : 'Update Status'}
+                            {updatingStatus ? 'Updating...' : 'Update Status & Address'}
                           </Button>
+
+
                           {statusUpdateSuccess && <p className="text-[10px] text-emerald-600 font-medium mt-1">Order status updated successfully!</p>}
                           {statusUpdateError && <p className="text-[10px] text-destructive mt-1">{statusUpdateError}</p>}
                         </div>
@@ -598,55 +955,81 @@ export function OrdersPage({ onMenuClick, userRole }: OrdersPageProps) {
                           {selectedOrderData.deliveryNotes || 'No delivery details provided.'}
                         </pre>
                       </div>
+
+                      {selectedOrderData.pickupAddress && (
+                        <div className="pt-4 border-t border-border">
+                          <div className="flex items-center gap-2 mb-2">
+                            <MapPin className="h-4 w-4 text-amber-500" />
+                            <p className="text-sm font-semibold text-amber-600">Assigned Pickup Location</p>
+                          </div>
+                          <p className="text-sm text-slate-800 ml-6 font-medium font-sans whitespace-pre-wrap bg-amber-500/5 p-3 rounded-lg border border-amber-500/20">
+                            {selectedOrderData.pickupAddress}
+                          </p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
 
                   <Card className="shadow-sm">
                     <CardHeader>
-                      <CardTitle>Order Timeline</CardTitle>
-                      <CardDescription>Track your order progress</CardDescription>
+                      <CardTitle>Order Timeline & Print Preview</CardTitle>
+                      <CardDescription>Track your order progress and review design proof</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="relative">
-                        {getTimelineSteps(selectedOrderData).map((step, index, array) => (
-                          <div key={index} className="relative pb-8 last:pb-0">
-                            {index < array.length - 1 && (
-                              <div 
-                                className={`absolute left-4 top-8 w-0.5 h-full -ml-px ${
-                                  step.completed ? 'bg-success' : 'bg-border'
-                                }`}
-                              />
-                            )}
-                            <div className="relative flex items-start gap-4">
-                              <div className={`flex h-8 w-8 items-center justify-center rounded-full border-2 ${
-                                step.completed 
-                                  ? 'bg-success border-success' 
-                                  : step.active 
-                                  ? 'bg-primary border-primary' 
-                                  : 'bg-background border-border'
-                              }`}>
-                                {step.completed ? (
-                                  <CheckCircle className="h-4 w-4 text-white" />
-                                ) : step.active ? (
-                                  <Clock className="h-4 w-4 text-white" />
-                                ) : (
-                                  <div className="h-2 w-2 rounded-full bg-border" />
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 bg-muted/10 p-3 rounded-xl border border-border/50">
+                        {/* Timeline */}
+                        <div className="md:col-span-7 space-y-4">
+                          <div className="relative">
+                            {getTimelineSteps(selectedOrderData).map((step, index, array) => (
+                              <div key={index} className="relative pb-8 last:pb-0">
+                                {index < array.length - 1 && (
+                                  <div 
+                                    className={`absolute left-4 top-8 w-0.5 h-full -ml-px ${
+                                      step.completed ? 'bg-success' : 'bg-border'
+                                    }`}
+                                  />
                                 )}
+                                <div className="relative flex items-start gap-4">
+                                  <div className={`flex h-8 w-8 items-center justify-center rounded-full border-2 ${
+                                    step.completed 
+                                      ? 'bg-success border-success' 
+                                      : step.active 
+                                      ? 'bg-primary border-primary' 
+                                      : 'bg-background border-border'
+                                  }`}>
+                                    {step.completed ? (
+                                      <CheckCircle className="h-4 w-4 text-white" />
+                                    ) : step.active ? (
+                                      <Clock className="h-4 w-4 text-white" />
+                                    ) : (
+                                      <div className="h-2 w-2 rounded-full bg-border" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 pt-0.5">
+                                    <p className={`text-sm font-medium ${
+                                      step.completed || step.active ? 'text-foreground' : 'text-muted-foreground'
+                                    }`}>
+                                      {step.label}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{step.date}</p>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="flex-1 pt-0.5">
-                                <p className={`text-sm font-medium ${
-                                  step.completed || step.active ? 'text-foreground' : 'text-muted-foreground'
-                                }`}>
-                                  {step.label}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-0.5">{step.date}</p>
-                              </div>
-                            </div>
+                            ))}
                           </div>
-                        ))}
+                        </div>
+
+                        {/* Print Preview */}
+                        <div className="md:col-span-5 border-t md:border-t-0 md:border-l border-border/40 pt-4 md:pt-0 md:pl-6 flex flex-col items-center justify-start text-left">
+                          <h5 className="font-bold text-primary text-[10px] uppercase tracking-wider mb-4 self-start">
+                            Design Print Preview
+                          </h5>
+                          {renderDesignPreview(selectedOrderData.customizations?.[0], selectedOrderData.product)}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
+
                 </>
               ) : (
                 <Card className="shadow-sm">
