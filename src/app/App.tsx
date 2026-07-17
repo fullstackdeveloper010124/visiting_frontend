@@ -1,40 +1,40 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { AppSidebar } from './components/AppSidebar';
-import { EnhancedUserDashboard } from './components/EnhancedUserDashboard';
-import { AdminDashboard } from './components/AdminDashboard';
-import { InventoryAdminDashboard } from './components/InventoryAdminDashboard';
-import { OrderProcessorDashboard } from './components/OrderProcessorDashboard';
-import { DeliveryPersonDashboard } from './components/DeliveryPersonDashboard';
-import { AccountingDashboard } from './components/AccountingDashboard';
-import { SalespersonDashboard } from './components/SalespersonDashboard';
-import { FinanceContractsDashboard } from './components/FinanceContractsDashboard';
-import { ProcurementDashboard } from './components/ProcurementDashboard';
-import { ITAdministratorDashboard } from './components/ITAdministratorDashboard';
-import { SystemDocumentation } from './components/SystemDocumentation';
-import { AuditLogsPage } from './components/AuditLogsPage';
-import { WorkflowDiagrams } from './components/WorkflowDiagrams';
-import { ProductsPage } from './components/ProductsPage';
-import { CustomizePage } from './components/CustomizePage';
-import { ApproveCardDesignPage } from './components/ApproveCardDesignPage';
-import { LetterheadsCustomizePage } from './components/LetterheadsCustomizePage';
-import { EnvelopesCustomizePage } from './components/EnvelopesCustomizePage';
-import { NotepadsCustomizePage } from './components/NotepadsCustomizePage';
-import { FoldersCustomizePage } from './components/FoldersCustomizePage';
-import { SlipsCustomizePage } from './components/SlipsCustomizePage';
-import { OrdersPage } from './components/OrdersPage';
-import { InventoryPage } from './components/InventoryPage';
-import { AnalyticsPage } from './components/AnalyticsPage';
-import { LoginPage } from './components/LoginPage';
-import { SignupPage } from './components/SignupPage';
-import { UserInventoryPage } from './components/UserInventoryPage';
-import { UpdateProductPage } from './components/UpdateProductPage';
-import { UserProfilePage } from './components/UserProfilePage';
-import { UserAnalyticsPage } from './components/UserAnalyticsPage';
-import { HelpPage } from './components/HelpPage';
-import { SettingsPage } from './components/SettingsPage';
-import { Button } from './components/ui/button';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import type { UserRole } from './types/roles';
+
+const AppSidebar = lazy(() => import('./components/AppSidebar').then(mod => ({ default: (mod as any).AppSidebar } as any)));
+const EnhancedUserDashboard = lazy(() => import('./components/EnhancedUserDashboard').then(mod => ({ default: (mod as any).EnhancedUserDashboard } as any)));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(mod => ({ default: (mod as any).AdminDashboard } as any)));
+const InventoryAdminDashboard = lazy(() => import('./components/InventoryAdminDashboard').then(mod => ({ default: (mod as any).InventoryAdminDashboard } as any)));
+const OrderProcessorDashboard = lazy(() => import('./components/OrderProcessorDashboard').then(mod => ({ default: (mod as any).OrderProcessorDashboard } as any)));
+const DeliveryPersonDashboard = lazy(() => import('./components/DeliveryPersonDashboard').then(mod => ({ default: (mod as any).DeliveryPersonDashboard } as any)));
+const AccountingDashboard = lazy(() => import('./components/AccountingDashboard').then(mod => ({ default: (mod as any).AccountingDashboard } as any)));
+const SalespersonDashboard = lazy(() => import('./components/SalespersonDashboard').then(mod => ({ default: (mod as any).SalespersonDashboard } as any)));
+const FinanceContractsDashboard = lazy(() => import('./components/FinanceContractsDashboard').then(mod => ({ default: (mod as any).FinanceContractsDashboard } as any)));
+const ProcurementDashboard = lazy(() => import('./components/ProcurementDashboard').then(mod => ({ default: (mod as any).ProcurementDashboard } as any)));
+const ITAdministratorDashboard = lazy(() => import('./components/ITAdministratorDashboard').then(mod => ({ default: (mod as any).ITAdministratorDashboard } as any)));
+const SystemDocumentation = lazy(() => import('./components/SystemDocumentation').then(mod => ({ default: (mod as any).SystemDocumentation } as any)));
+const AuditLogsPage = lazy(() => import('./components/AuditLogsPage').then(mod => ({ default: (mod as any).AuditLogsPage } as any)));
+const WorkflowDiagrams = lazy(() => import('./components/WorkflowDiagrams').then(mod => ({ default: (mod as any).WorkflowDiagrams } as any)));
+const ProductsPage = lazy(() => import('./components/ProductsPage').then(mod => ({ default: (mod as any).ProductsPage } as any)));
+const CustomizePage = lazy(() => import('./components/CustomizePage').then(mod => ({ default: (mod as any).CustomizePage } as any)));
+const ApproveCardDesignPage = lazy(() => import('./components/ApproveCardDesignPage').then(mod => ({ default: (mod as any).ApproveCardDesignPage } as any)));
+const LetterheadsCustomizePage = lazy(() => import('./components/LetterheadsCustomizePage').then(mod => ({ default: (mod as any).LetterheadsCustomizePage } as any)));
+const EnvelopesCustomizePage = lazy(() => import('./components/EnvelopesCustomizePage').then(mod => ({ default: (mod as any).EnvelopesCustomizePage } as any)));
+const NotepadsCustomizePage = lazy(() => import('./components/NotepadsCustomizePage').then(mod => ({ default: (mod as any).NotepadsCustomizePage } as any)));
+const FoldersCustomizePage = lazy(() => import('./components/FoldersCustomizePage').then(mod => ({ default: (mod as any).FoldersCustomizePage } as any)));
+const SlipsCustomizePage = lazy(() => import('./components/SlipsCustomizePage').then(mod => ({ default: (mod as any).SlipsCustomizePage } as any)));
+const OrdersPage = lazy(() => import('./components/OrdersPage').then(mod => ({ default: (mod as any).OrdersPage } as any)));
+const InventoryPage = lazy(() => import('./components/InventoryPage').then(mod => ({ default: (mod as any).InventoryPage } as any)));
+const AnalyticsPage = lazy(() => import('./components/AnalyticsPage').then(mod => ({ default: (mod as any).AnalyticsPage } as any)));
+const LoginPage = lazy(() => import('./components/LoginPage').then(mod => ({ default: (mod as any).LoginPage } as any)));
+const SignupPage = lazy(() => import('./components/SignupPage').then(mod => ({ default: (mod as any).SignupPage } as any)));
+const UserInventoryPage = lazy(() => import('./components/UserInventoryPage').then(mod => ({ default: (mod as any).UserInventoryPage } as any)));
+const UpdateProductPage = lazy(() => import('./components/UpdateProductPage').then(mod => ({ default: (mod as any).UpdateProductPage } as any)));
+const UserProfilePage = lazy(() => import('./components/UserProfilePage').then(mod => ({ default: (mod as any).UserProfilePage } as any)));
+const UserAnalyticsPage = lazy(() => import('./components/UserAnalyticsPage').then(mod => ({ default: (mod as any).UserAnalyticsPage } as any)));
+const HelpPage = lazy(() => import('./components/HelpPage').then(mod => ({ default: (mod as any).HelpPage } as any)));
+const SettingsPage = lazy(() => import('./components/SettingsPage').then(mod => ({ default: (mod as any).SettingsPage } as any)));
 
 function App() {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
@@ -140,19 +140,20 @@ function App() {
   return (
     <BrowserRouter>
       <div className="flex h-screen overflow-hidden bg-background">
-        {/* Sidebar */}
-        {userRole && (
-          <AppSidebar
-            userRole={userRole}
-            isOpen={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-            onLogout={handleLogout}
-          />
-        )}
+        <Suspense fallback={<div className="p-4">Loading...</div>}>
+          {/* Sidebar */}
+          {userRole && (
+            <AppSidebar
+              userRole={userRole}
+              isOpen={sidebarOpen}
+              onClose={() => setSidebarOpen(false)}
+              onLogout={handleLogout}
+            />
+          )}
 
-        {/* Main Content */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <Routes>
+          {/* Main Content */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <Routes>
             {/* Auth Routes */}
             <Route path="/login" element={userRole ? <Navigate to="/" /> : <LoginPage onLogin={handleLogin} />} />
             <Route path="/signup" element={userRole ? <Navigate to="/" /> : <SignupPage onSignup={handleLogin} />} />
@@ -280,8 +281,9 @@ function App() {
 
             {/* Catch all */}
             <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </div>
+            </Routes>
+          </div>
+        </Suspense>
       </div>
     </BrowserRouter>
   );

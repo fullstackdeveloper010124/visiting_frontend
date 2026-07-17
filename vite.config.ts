@@ -20,4 +20,17 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            // put UI libs in a separate chunk
+            if (id.includes('@mui') || id.includes('recharts') || id.includes('d3')) return 'vendor-ui';
+            return 'vendor';
+          }
+        },
+      },
+    },
+  },
 })

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './app/App'
 import './styles/index.css'
@@ -29,6 +29,8 @@ window.fetch = function (input, init) {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading app...</div>}>
+      <App />
+    </Suspense>
   </React.StrictMode>,
 )
