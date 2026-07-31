@@ -329,20 +329,6 @@ ${method === 'paypal' ? 'Paid via Simulated PayPal Checkout (Sandbox)' : ''}`
           setDesign(resData.data);
           if (resData.data.status === 'approved') {
             setApproved(true);
-          } else {
-            // Automatically approve the design on mount when visited!
-            try {
-              const approveRes = await fetch(`/api/v1/customize-config/approve/${approvalId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-              });
-              const approveData = await approveRes.json();
-              if (approveRes.ok && approveData.success) {
-                setApproved(true);
-              }
-            } catch (approveErr) {
-              console.error('Auto approval failed:', approveErr);
-            }
           }
         } else {
           setError(resData.error || 'Failed to load card design details.');
@@ -404,6 +390,179 @@ ${method === 'paypal' ? 'Paid via Simulated PayPal Checkout (Sandbox)' : ''}`
     }
   };
 
+  const renderDesignPreview = () => {
+    const details = design?.designDetails || {};
+
+    return (
+      <div className="lg:col-span-2 space-y-6 flex flex-col items-center">
+        <div className="w-full flex items-center justify-between">
+          <h2 className="text-xl font-bold tracking-tight flex items-center">
+            <CheckCircle className="mr-2 h-5 w-5 text-emerald-500" /> Live Design Preview
+          </h2>
+          {approved && (
+            <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+              Approved
+            </span>
+          )}
+        </div>
+
+        <div className="w-full space-y-8 flex flex-col items-center bg-background border border-border p-6 rounded-xl shadow-md">
+          {design?.designType === 'letterhead' ? (
+            <div className="w-full max-w-sm space-y-2">
+              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-2">Letterhead View</span>
+              <Card className="w-full aspect-[8.5/11] shadow-lg overflow-hidden rounded-sm border transition-all duration-300 relative bg-white flex items-center justify-center p-8 bg-no-repeat bg-center"
+                    style={{ 
+                      backgroundImage: details.uploadedLetterhead ? `url(${details.uploadedLetterhead})` : 'none',
+                      backgroundSize: 'cover',
+                    }}>
+                {!details.uploadedLetterhead && (
+                  <div className="text-center text-muted-foreground text-xs p-4">
+                    <ImageIcon className="mx-auto h-8 w-8 mb-2 opacity-40 text-emerald-500" />
+                    <p className="font-semibold text-foreground">Custom Design Uploaded</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">Watermarked Stationery Batch Setup</p>
+                  </div>
+                )}
+              </Card>
+            </div>
+          ) : design?.designType === 'envelope' ? (
+            <>
+              <div className="w-full max-w-md space-y-2">
+                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-2">Front Side</span>
+                <Card className="w-full aspect-[9.5/4.125] shadow-lg overflow-hidden rounded-sm border transition-all duration-300 relative bg-white flex items-center justify-center bg-no-repeat bg-center"
+                      style={{
+                        backgroundImage: details.uploadedFront && details.uploadedFront !== '/images/envelope_front_demo.png' ? `url(${details.uploadedFront})` : 'none',
+                        backgroundSize: 'cover',
+                      }}>
+                  {(!details.uploadedFront || details.uploadedFront === '/images/envelope_front_demo.png') && (
+                    <div className="text-center text-muted-foreground text-xs p-4">
+                      <ImageIcon className="mx-auto h-6 w-6 mb-1 opacity-40 text-emerald-500" />
+                      <p className="font-semibold text-foreground">Envelope Front Preview</p>
+                    </div>
+                  )}
+                </Card>
+              </div>
+              <div className="w-full max-w-md space-y-2">
+                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-2">Back Side</span>
+                <Card className="w-full aspect-[9.5/4.125] shadow-lg overflow-hidden rounded-sm border transition-all duration-300 relative bg-white flex items-center justify-center bg-no-repeat bg-center"
+                      style={{
+                        backgroundImage: details.uploadedBack && details.uploadedBack !== '/images/envelope_back_demo.png' ? `url(${details.uploadedBack})` : 'none',
+                        backgroundSize: 'cover',
+                      }}>
+                  {(!details.uploadedBack || details.uploadedBack === '/images/envelope_back_demo.png') && (
+                    <div className="text-center text-muted-foreground text-xs p-4">
+                      <ImageIcon className="mx-auto h-6 w-6 mb-1 opacity-40 text-emerald-500" />
+                      <p className="font-semibold text-foreground">Envelope Back Preview</p>
+                    </div>
+                  )}
+                </Card>
+              </div>
+            </>
+          ) : design?.designType === 'notepad' ? (
+            <div className="w-full max-w-sm space-y-2">
+              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-2">Notepad View</span>
+              <Card className="w-full aspect-[5.5/8.5] shadow-lg overflow-hidden rounded-sm border transition-all duration-300 relative bg-white flex items-center justify-center p-8 bg-no-repeat bg-center"
+                    style={{ 
+                      backgroundImage: details.uploadedNotepad ? `url(${details.uploadedNotepad})` : 'none',
+                      backgroundSize: 'cover',
+                    }}>
+                {!details.uploadedNotepad && (
+                  <div className="text-center text-muted-foreground text-xs p-4">
+                    <ImageIcon className="mx-auto h-8 w-8 mb-2 opacity-40 text-emerald-500" />
+                    <p className="font-semibold text-foreground">Custom Notepad Design</p>
+                  </div>
+                )}
+              </Card>
+            </div>
+          ) : design?.designType === 'folder' ? (
+            <div className="w-full max-w-sm space-y-2">
+              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-2">Presentation Folder View</span>
+              <Card className="w-full aspect-[9/12] shadow-lg overflow-hidden rounded-sm border transition-all duration-300 relative bg-white flex items-center justify-center p-8 bg-no-repeat bg-center"
+                    style={{ 
+                      backgroundImage: details.uploadedFolder ? `url(${details.uploadedFolder})` : 'none',
+                      backgroundSize: 'cover',
+                    }}>
+                {!details.uploadedFolder && (
+                  <div className="text-center text-muted-foreground text-xs p-4">
+                    <ImageIcon className="mx-auto h-8 w-8 mb-2 opacity-40 text-emerald-500" />
+                    <p className="font-semibold text-foreground">Custom Folder Design</p>
+                  </div>
+                )}
+              </Card>
+            </div>
+          ) : design?.designType === 'slip' ? (
+            <div className="w-full max-w-md space-y-2">
+              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-2">Compliment Slip View</span>
+              <Card className="w-full aspect-[8.5/3.5] shadow-lg overflow-hidden rounded-sm border transition-all duration-300 relative bg-white flex items-center justify-center p-8 bg-no-repeat bg-center"
+                    style={{ 
+                      backgroundImage: details.uploadedSlip ? `url(${details.uploadedSlip})` : 'none',
+                      backgroundSize: 'cover',
+                    }}>
+                {!details.uploadedSlip && (
+                  <div className="text-center text-muted-foreground text-xs p-4">
+                    <ImageIcon className="mx-auto h-8 w-8 mb-2 opacity-40 text-emerald-500" />
+                    <p className="font-semibold text-foreground">Custom Slip Design</p>
+                  </div>
+                )}
+              </Card>
+            </div>
+          ) : (
+            <>
+              <div className="w-full max-w-md space-y-2">
+                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-2">Front Side</span>
+                <Card className="w-full aspect-[3.5/2] shadow-lg overflow-hidden rounded-md border transition-all duration-300 relative bg-no-repeat bg-center"
+                      style={{ 
+                        backgroundColor: details.secondaryColor || '#ffffff',
+                        fontFamily: getFontFamily(details.fontFamily), 
+                        color: details.textColor || '#1e293b',
+                        borderColor: 'rgba(0,0,0,0.05)'
+                      }}>
+                  <div className="absolute top-0 right-0 p-4 text-right flex flex-col items-end">
+                    <span className="text-xs font-bold tracking-widest uppercase opacity-75">{details.companyName}</span>
+                    <span className="text-[8px] tracking-wider opacity-60 italic">{details.tagline}</span>
+                  </div>
+
+                  <div className="absolute bottom-0 left-0 p-4 space-y-1 max-w-[65%]">
+                    <h3 className="text-lg font-bold leading-tight">{details.personName}</h3>
+                    <p className="text-[10px] font-medium tracking-wide opacity-80 leading-none">{details.jobTitle}</p>
+                    <div className="pt-2 text-[8px] space-y-0.5 leading-normal opacity-85">
+                      {details.phone && <div className="flex items-center gap-1"><Smartphone className="h-2 w-2" /> {details.phone}</div>}
+                      {details.email && <div className="flex items-center gap-1"><Mail className="h-2 w-2" /> {details.email}</div>}
+                      {details.website && <div className="flex items-center gap-1"><Globe className="h-2 w-2" /> {details.website}</div>}
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-0 right-0 p-4 text-[7px] space-y-0.5 max-w-[45%] text-right opacity-80 leading-tight">
+                    {details.address1 && <div>{details.address1}</div>}
+                    {details.address2 && <div>{details.address2}</div>}
+                    {details.address3 && <div>{details.address3}</div>}
+                  </div>
+                </Card>
+              </div>
+
+              <div className="w-full max-w-md space-y-2">
+                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-2">Back Side</span>
+                <Card className="w-full aspect-[3.5/2] shadow-lg overflow-hidden rounded-md border-0 transition-all duration-300 relative flex items-center justify-center p-8 bg-no-repeat bg-center"
+                      style={{ 
+                        backgroundColor: details.primaryColor || '#10b981', 
+                        fontFamily: getFontFamily(details.fontFamily) 
+                      }}>
+                  <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white to-transparent pointer-events-none"></div>
+                  <div className="relative z-10 flex flex-col items-center text-center">
+                    <div className="p-3 bg-black/10 backdrop-blur-sm rounded-lg border border-white/20 shadow-sm">
+                      <h2 className="text-2xl font-bold tracking-tight mb-0.5" style={{ color: details.secondaryColor || '#ffffff' }}>{details.companyName}</h2>
+                      <p className="text-[10px] tracking-widest uppercase opacity-90 font-medium" style={{ color: details.secondaryColor || '#ffffff' }}>{details.tagline}</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
@@ -454,7 +613,9 @@ ${method === 'paypal' ? 'Paid via Simulated PayPal Checkout (Sandbox)' : ''}`
           </Button>
         </header>
 
-        <main className="flex-1 max-w-xl w-full mx-auto p-4 md:p-8">
+        <main className="flex-1 max-w-xl w-full mx-auto p-4 md:p-8 space-y-8">
+          {renderDesignPreview()}
+
           <Card className="border border-border shadow-lg">
             <CardHeader className="text-center pb-2">
               <CardTitle className="text-xl font-bold flex items-center justify-center gap-2">
