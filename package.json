@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "node ./node_modules/vite/bin/vite.js",
     "build": "node ./node_modules/typescript/lib/tsc.js -b && node ./node_modules/vite/bin/vite.js build",
+    "preview": "node ./node_modules/vite/bin/vite.js preview --host 0.0.0.0 --port 4173",
+    "start": "node ./node_modules/vite/bin/vite.js preview --host 0.0.0.0 --port ${PORT:-4173}",
     "lint": "eslint .",
-    "preview": "node ./node_modules/vite/bin/vite.js preview",
     "fix-windows": "npm install -D vite@^6.0.0 @rollup/rollup-win32-x64-msvc lightningcss-win32-x64-msvc --legacy-peer-deps && npm run dev"
   },
   "dependencies": {
