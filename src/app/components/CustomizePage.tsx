@@ -18,6 +18,24 @@ interface CustomizePageProps {
   userRole?: string;
 }
 
+// Format phone number to +1 (XXX) XXX-XXXX format
+const formatPhoneNumber = (value: string): string => {
+  if (!value) return '';
+  // Remove all non-digit characters except the leading +
+  const cleaned = value.replace(/\D/g, '');
+  
+  if (cleaned.length === 0) return '';
+  
+  // Handle various input lengths
+  if (cleaned.length <= 3) {
+    return cleaned.length > 0 ? `+1 (${cleaned}` : '+1 (';
+  } else if (cleaned.length <= 6) {
+    return `+1 (${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
+  } else {
+    return `+1 (${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
+  }
+};
+
 const productPresets = [
   { measurement: '8.5 x 11 (without watermark)', reams: '50 (500/ream)', inStock: '25000', ordered: '2500', balance: '22500', minQuantity: '1500', costPerReam: '250' },
   { measurement: '8.5 x 11 (with watermark)', reams: '25 (500/ream)', inStock: '12500', ordered: '500', balance: '12000', minQuantity: '1500', costPerReam: '350' },
@@ -130,7 +148,7 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
           setTagline(config.tagline || 'Innovation Delivered');
           setPersonName(config.personName || 'John Doe');
           setJobTitle(config.jobTitle || 'Chief Creative Officer');
-          setPhone(config.phone || '+1 (555) 123-4567');
+          setPhone(formatPhoneNumber(config.phone || '+1 (555) 123-4567'));
           setEmail(config.email || 'john.doe@acme.com');
           setWebsite(config.website || 'www.acmecorp.com');
           setAddress1(config.address1 || '123 Innovation Drive');
@@ -148,7 +166,7 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
           setAdminTagline(config.tagline || 'Innovation Delivered');
           setAdminPersonName(config.personName || 'John Doe');
           setAdminJobTitle(config.jobTitle || 'Chief Creative Officer');
-          setAdminPhone(config.phone || '+1 (555) 123-4567');
+          setAdminPhone(formatPhoneNumber(config.phone || '+1 (555) 123-4567'));
           setAdminEmail(config.email || 'john.doe@acme.com');
           setAdminWebsite(config.website || 'www.acmecorp.com');
           setAdminAddress1(config.address1 || '123 Innovation Drive');
@@ -191,7 +209,7 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
             const userProfile = profileData.data;
             if (userProfile.fullName) setPersonName(userProfile.fullName);
             if (userProfile.jobTitle) setJobTitle(userProfile.jobTitle);
-            if (userProfile.phone) setPhone(userProfile.phone);
+            if (userProfile.phone) setPhone(formatPhoneNumber(userProfile.phone));
             if (userProfile.email) setEmail(userProfile.email);
 
             setSocialLinks(prev => prev.map(link => {
@@ -217,7 +235,7 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
               if (draft.tagline) setTagline(draft.tagline);
               if (draft.personName) setPersonName(draft.personName);
               if (draft.jobTitle) setJobTitle(draft.jobTitle);
-              if (draft.phone) setPhone(draft.phone);
+              if (draft.phone) setPhone(formatPhoneNumber(draft.phone));
               if (draft.email) setEmail(draft.email);
               if (draft.website) setWebsite(draft.website);
               if (draft.address1) setAddress1(draft.address1);
@@ -581,7 +599,7 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <Label htmlFor="phone">Phone Number</Label>
-                        <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} />
+                        <Input id="phone" value={phone} onChange={e => setPhone(formatPhoneNumber(e.target.value))} />
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="email">Email Address</Label>
@@ -786,7 +804,7 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
                           <Label className="text-xs">Phone</Label>
-                          <Input value={adminPhone} onChange={e => setAdminPhone(e.target.value)} />
+                          <Input value={adminPhone} onChange={e => setAdminPhone(formatPhoneNumber(e.target.value))} />
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">Email</Label>
