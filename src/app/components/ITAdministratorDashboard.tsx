@@ -46,99 +46,9 @@ export function ITAdministratorDashboard({ onMenuClick }: ITAdministratorDashboa
     }
   };
 
-  // Products for admin to choose when sending preview approval
-  const [products, setProducts] = useState<any[]>([]);
-  const [approvalModalOpen, setApprovalModalOpen] = useState(false);
-  const [selectedUserForApproval, setSelectedUserForApproval] = useState<any | null>(null);
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  const [sendingApproval, setSendingApproval] = useState(false);
-  const [approvalUrl, setApprovalUrl] = useState<string | null>(null);
-  const [approvalError, setApprovalError] = useState<string | null>(null);
-
-  const fetchProducts = async () => {
-    try {
-      const res = await fetch('/api/v1/products');
-      const data = await res.json();
-      if (res.ok && data.success) setProducts(data.data);
-    } catch (err) {
-      console.error('Failed to load products for approval modal:', err);
-    }
-  };
-
-  // when products load, ensure a default selection is set
-  useEffect(() => {
-    if (products.length > 0 && !selectedProductId) {
-      setSelectedProductId(products[0]._id);
-    }
-  }, [products, selectedProductId]);
-
   useEffect(() => {
     fetchUsers();
-    fetchProducts();
   }, []);
-
-  const handleApproveAndSend = async () => {
-    if (!selectedUserForApproval) return;
-    setSendingApproval(true);
-    setApprovalError(null);
-
-    try {
-      const token = localStorage.getItem('token');
-
-      // Ensure user is activated
-      const activateRes = await fetch(`/api/v1/users/${selectedUserForApproval._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: 'active' })
-      });
-      const activateData = await activateRes.json();
-      if (!activateRes.ok || !activateData.success) {
-        throw new Error(activateData.error || 'Failed to activate user');
-      }
-
-      // find selected product
-      const product = products.find(p => p._id === selectedProductId) || products[0];
-      const sku = product?.sku || '';
-      let designType = 'business_card';
-      if (sku.startsWith('LH')) designType = 'letterhead';
-      else if (sku.startsWith('EV')) designType = 'envelope';
-      else if (sku.startsWith('NP')) designType = 'notepad';
-      else if (sku.startsWith('FL')) designType = 'folder';
-      else if (sku.startsWith('CS')) designType = 'slip';
-
-      const designDetails = {
-        productId: product?._id,
-        productName: product?.name,
-        sku: product?.sku
-      };
-
-      // Send approval email to the user by creating a CardApproval
-      const sendRes = await fetch('/api/v1/customize-config/send-approval-to-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ userId: selectedUserForApproval._id, userEmail: selectedUserForApproval.email, designDetails, designType })
-      });
-      const sendData = await sendRes.json();
-      if (!sendRes.ok || !sendData.success) {
-        throw new Error(sendData.error || 'Failed to send approval email');
-      }
-
-      setApprovalUrl(sendData.approvalUrl || null);
-      // Update local users list status
-      setUsersList(prev => prev.map(u => u._id === selectedUserForApproval._id ? { ...u, status: 'active' } : u));
-    } catch (err: any) {
-      console.error('Error in approve-and-send:', err);
-      setApprovalError(err?.message || 'Approval send failed');
-    } finally {
-      setSendingApproval(false);
-    }
-  };
 
   const handleUpdateStatus = async (userId: string, newStatus: string) => {
     try {
@@ -319,29 +229,13 @@ export function ITAdministratorDashboard({ onMenuClick }: ITAdministratorDashboa
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-2">
                                   {user.status === 'pending' && (
-                                    <>
-                                      <Button 
-                                        size="sm" 
-                                        className="bg-green-600 hover:bg-green-700 text-white font-medium shadow-sm transition-colors"
-                                        onClick={() => handleUpdateStatus(user._id, 'active')}
-                                      >
-                                        Approve
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="ml-1 font-medium"
-                                        onClick={() => {
-                                          setSelectedUserForApproval(user);
-                                          setApprovalModalOpen(true);
-                                          setApprovalUrl(null);
-                                          setSelectedProductId(products?.[0]?._id || null);
-                                          setApprovalError(null);
-                                        }}
-                                      >
-                                        Approve & Send
-                                      </Button>
-                                    </>
+                                    <Button 
+                                      size="sm" 
+                                      className="bg-green-600 hover:bg-green-700 text-white font-medium shadow-sm transition-colors"
+                                      onClick={() => handleUpdateStatus(user._id, 'active')}
+                                    >
+                                      Approve
+                                    </Button>
                                   )}
                                   {user.status === 'active' && (
                                     <Button 
@@ -522,48 +416,6 @@ export function ITAdministratorDashboard({ onMenuClick }: ITAdministratorDashboa
           </CardContent>
         </Card>
       </div>
-
-      {approvalModalOpen && selectedUserForApproval && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="w-full max-w-md bg-background border border-border rounded-lg shadow-xl p-6">
-            <h3 className="text-lg font-bold">Approve & Send Preview</h3>
-            <p className="text-sm text-muted-foreground mt-1">Send a product preview approval link to <span className="font-semibold">{selectedUserForApproval.email}</span></p>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-muted-foreground">Select Product</label>
-              <select
-                className="w-full mt-2 p-2 border border-border rounded"
-                value={selectedProductId || ''}
-                onChange={(e) => setSelectedProductId(e.target.value)}
-              >
-                {products.map((p) => (
-                  <option key={p._id} value={p._id}>{p.name} — {p.sku}</option>
-                ))}
-              </select>
-            </div>
-
-            {approvalError && <div className="text-sm text-destructive mt-3">{approvalError}</div>}
-
-            <div className="mt-6 flex items-center justify-end gap-2">
-              <Button variant="outline" onClick={() => { setApprovalModalOpen(false); setSelectedUserForApproval(null); setApprovalUrl(null); }}>
-                Close
-              </Button>
-              {approvalUrl ? (
-                <a href={approvalUrl} target="_blank" rel="noreferrer">
-                  <Button>
-                    Go To Approval
-                  </Button>
-                </a>
-              ) : (
-                <Button onClick={handleApproveAndSend} disabled={sendingApproval}>
-                  {sendingApproval ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Approve & Send
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
