@@ -65,6 +65,13 @@ export function ITAdministratorDashboard({ onMenuClick }: ITAdministratorDashboa
     }
   };
 
+  // when products load, ensure a default selection is set
+  useEffect(() => {
+    if (products.length > 0 && !selectedProductId) {
+      setSelectedProductId(products[0]._id);
+    }
+  }, [products, selectedProductId]);
+
   useEffect(() => {
     fetchUsers();
     fetchProducts();
