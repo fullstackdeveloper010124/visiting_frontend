@@ -1,12 +1,13 @@
 import { AppHeader } from './AppHeader';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { StatusBadge, StockStatus } from './StatusBadge';
-import { Search, Plus, Edit, TrendingDown, TrendingUp, Package } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Plus, Edit, TrendingDown, TrendingUp, Package, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Label } from './ui/label';
 
 interface InventoryItem {
   id: string;
@@ -26,75 +27,90 @@ interface InventoryPageProps {
 
 export function InventoryPage({ onMenuClick }: InventoryPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const inventory: InventoryItem[] = [
-    {
-      id: '1',
-      name: 'Premium Card Stock (White)',
-      category: 'Paper',
-      sku: 'PCS-WHT-001',
-      stock: 25000,
-      minStock: 10000,
-      unit: 'sheets',
-      status: 'in-stock',
-      lastRestocked: '2024-01-15'
-    },
-    {
-      id: '2',
-      name: 'Matte Business Cards',
-      category: 'Cards',
-      sku: 'MBC-001',
-      stock: 8500,
-      minStock: 10000,
-      unit: 'units',
-      status: 'low-stock',
-      lastRestocked: '2024-01-20'
-    },
-    {
-      id: '3',
-      name: 'Letterhead Paper (A4)',
-      category: 'Paper',
-      sku: 'LHP-A4-001',
-      stock: 0,
-      minStock: 5000,
-      unit: 'sheets',
-      status: 'out-of-stock',
-      lastRestocked: '2024-01-10'
-    },
-    {
-      id: '4',
-      name: 'Envelope Stock (Standard)',
-      category: 'Envelopes',
-      sku: 'ENV-STD-001',
-      stock: 15000,
-      minStock: 5000,
-      unit: 'units',
-      status: 'in-stock',
-      lastRestocked: '2024-01-25'
-    },
-    {
-      id: '5',
-      name: 'Notepad Binding Glue',
-      category: 'Supplies',
-      sku: 'NBG-001',
-      stock: 45,
-      minStock: 50,
-      unit: 'bottles',
-      status: 'low-stock',
-      lastRestocked: '2024-01-18'
-    },
-    {
-      id: '6',
-      name: 'Premium Ink (Cyan)',
-      category: 'Ink',
-      sku: 'INK-CYN-001',
-      stock: 120,
-      minStock: 30,
-      unit: 'cartridges',
-      status: 'in-stock',
-      lastRestocked: '2024-01-28'
-    },
-  ];
+  // Edit Modal State
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [editQuantity, setEditQuantity] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchInventory = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/v1/inventory', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok && data.success && data.data) {
+        const mappedInventory = data.data.map((item: any) => {
+          const prod = item.product || {};
+          let status: StockStatus = 'in-stock';
+          if (item.quantityAvailable === 0) status = 'out-of-stock';
+          else if (item.quantityAvailable < item.reorderPoint) status = 'low-stock';
+
+          return {
+            id: item._id,
+            name: prod.name || 'Unknown Product',
+            category: prod.category || 'General',
+            sku: prod.sku || 'N/A',
+            stock: item.quantityAvailable,
+            minStock: item.reorderPoint,
+            unit: 'units',
+            status,
+            lastRestocked: item.lastStockedAt ? item.lastStockedAt.slice(0, 10) : 'N/A'
+          };
+        });
+        setInventory(mappedInventory);
+      }
+    } catch (err) {
+      console.error('Error fetching inventory:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInventory();
+  }, []);
+
+  const handleEditClick = (item: InventoryItem) => {
+    setEditingItem(item);
+    setEditQuantity(item.stock.toString());
+  };
+
+  const handleSaveStock = async () => {
+    if (!editingItem) return;
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/v1/inventory/adjust-stock', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          inventoryId: editingItem.id,
+          quantity: parseInt(editQuantity, 10),
+          notes: 'Admin adjusted stock'
+        })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setEditingItem(null);
+        fetchInventory(); // refresh list
+      } else {
+        alert(data.error || 'Failed to update stock');
+      }
+    } catch (err) {
+      console.error('Error adjusting stock:', err);
+      alert('Connection error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const filteredInventory = inventory.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -110,7 +126,7 @@ export function InventoryPage({ onMenuClick }: InventoryPageProps) {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden relative">
       <AppHeader onMenuClick={onMenuClick} />
       
       <main className="flex-1 overflow-y-auto">
@@ -121,10 +137,6 @@ export function InventoryPage({ onMenuClick }: InventoryPageProps) {
               <h1 className="text-3xl font-bold text-foreground mb-2">Inventory Management</h1>
               <p className="text-muted-foreground">Manage your printing materials and supplies</p>
             </div>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Item
-            </Button>
           </div>
 
           {/* Stats Cards */}
@@ -207,58 +219,64 @@ export function InventoryPage({ onMenuClick }: InventoryPageProps) {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg border border-border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="font-semibold">Item Name</TableHead>
-                      <TableHead className="font-semibold">SKU</TableHead>
-                      <TableHead className="font-semibold">Category</TableHead>
-                      <TableHead className="font-semibold">Stock</TableHead>
-                      <TableHead className="font-semibold">Status</TableHead>
-                      <TableHead className="font-semibold">Last Restocked</TableHead>
-                      <TableHead className="font-semibold text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredInventory.map((item) => (
-                      <TableRow key={item.id} className="hover:bg-muted/50">
-                        <TableCell className="font-medium">{item.name}</TableCell>
-                        <TableCell>
-                          <code className="text-xs bg-muted px-2 py-1 rounded">{item.sku}</code>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{item.category}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium text-foreground">
-                              {item.stock.toLocaleString()} {item.unit}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Min: {item.minStock.toLocaleString()}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge status={item.status} />
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {item.lastRestocked}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" className="gap-2">
-                            <Edit className="h-4 w-4" />
-                            Edit
-                          </Button>
-                        </TableCell>
+              {loading ? (
+                <div className="py-12 flex justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="font-semibold">Item Name</TableHead>
+                        <TableHead className="font-semibold">SKU</TableHead>
+                        <TableHead className="font-semibold">Category</TableHead>
+                        <TableHead className="font-semibold">Stock</TableHead>
+                        <TableHead className="font-semibold">Status</TableHead>
+                        <TableHead className="font-semibold">Last Restocked</TableHead>
+                        <TableHead className="font-semibold text-right">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredInventory.map((item) => (
+                        <TableRow key={item.id} className="hover:bg-muted/50">
+                          <TableCell className="font-medium">{item.name}</TableCell>
+                          <TableCell>
+                            <code className="text-xs bg-muted px-2 py-1 rounded">{item.sku}</code>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{item.category}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-foreground">
+                                {item.stock.toLocaleString()} {item.unit}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Min: {item.minStock.toLocaleString()}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={item.status} />
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {item.lastRestocked}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" className="gap-2" onClick={() => handleEditClick(item)}>
+                              <Edit className="h-4 w-4" />
+                              Edit
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
 
-              {filteredInventory.length === 0 && (
+              {!loading && filteredInventory.length === 0 && (
                 <div className="py-12 text-center">
                   <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="font-semibold text-lg text-foreground mb-2">No items found</h3>
@@ -271,6 +289,43 @@ export function InventoryPage({ onMenuClick }: InventoryPageProps) {
           </Card>
         </div>
       </main>
+
+      {/* Edit Stock Modal Overlay */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-sm shadow-2xl border-border bg-background">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold flex items-center gap-2">
+                <Edit className="h-5 w-5 text-emerald-500" />
+                Edit Stock Quantity
+              </CardTitle>
+              <CardDescription>
+                Update inventory level for {editingItem.name}.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="stockQty">New Quantity</Label>
+                <Input
+                  id="stockQty"
+                  type="number"
+                  min="0"
+                  value={editQuantity}
+                  onChange={(e) => setEditQuantity(e.target.value)}
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-end gap-2 border-t pt-4">
+              <Button type="button" variant="outline" onClick={() => setEditingItem(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveStock} disabled={submitting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : 'Save Changes'}
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

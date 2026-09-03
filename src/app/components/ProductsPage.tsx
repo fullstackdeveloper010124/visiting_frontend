@@ -24,10 +24,10 @@ interface Product {
   basePrice: number;
   imageUrl: string;
   status: 'active' | 'inactive';
-  displayOrder?: number;
   rating?: number;
   reviews?: number;
   popular?: boolean;
+  stock?: number;
 }
 
 interface ProductsPageProps {
@@ -440,19 +440,33 @@ export function ProductsPage({ onMenuClick, userRole }: ProductsPageProps) {
                         <div>
                           <p className="text-[10px] text-muted-foreground uppercase tracking-widest leading-none mb-1">Base Price</p>
                           <span className="text-lg font-bold text-foreground">${product.basePrice.toFixed(2)}</span>
+                          {product.stock !== undefined && (
+                            <div className="mt-1">
+                              <Badge variant={product.stock > 0 ? "secondary" : "destructive"} className="text-[10px]">
+                                {product.stock > 0 ? `In Stock: ${product.stock}` : 'Out of Stock'}
+                              </Badge>
+                            </div>
+                          )}
                         </div>
                         
                         {userRole !== 'super_user' ? (
-                          <Link to={
-                            product.name === 'Corporate Letterheads' ? "/customize-letterheads" : 
-                            product.name === 'Custom Envelopes' ? "/customize-envelopes" : 
-                            product.name === 'Designer Notepads' ? "/customize-notepads" : 
-                            product.name === 'Presentation Folders' ? "/customize-folders" : 
-                            product.name === 'Compliment Slips' ? "/customize-slips" : 
-                            "/customize"
-                          }>
-                            <Button size="sm">
-                              Customize
+                          <Link 
+                            to={
+                              product.stock === 0 ? "#" : (
+                                product.name === 'Corporate Letterheads' ? "/customize-letterheads" : 
+                                product.name === 'Custom Envelopes' ? "/customize-envelopes" : 
+                                product.name === 'Designer Notepads' ? "/customize-notepads" : 
+                                product.name === 'Presentation Folders' ? "/customize-folders" : 
+                                product.name === 'Compliment Slips' ? "/customize-slips" : 
+                                "/customize"
+                              )
+                            }
+                            onClick={(e) => {
+                              if (product.stock === 0) e.preventDefault();
+                            }}
+                          >
+                            <Button size="sm" disabled={product.stock === 0}>
+                              {product.stock === 0 ? 'Out of Stock' : 'Customize'}
                             </Button>
                           </Link>
                         ) : (

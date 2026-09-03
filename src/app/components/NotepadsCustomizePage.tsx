@@ -21,7 +21,7 @@ const notepadPresets = [
 export function NotepadsCustomizePage({ onMenuClick }: NotepadsCustomizePageProps) {
   const [measurement, setMeasurement] = useState(notepadPresets[0].measurement);
   const [pads, setPads] = useState(notepadPresets[0].pads);
-  const [inStock, setInStock] = useState(notepadPresets[0].inStock);
+  const [inStock, setInStock] = useState<string | number>('Loading...');
   const [ordered, setOrdered] = useState(notepadPresets[0].ordered);
   const [balance, setBalance] = useState(notepadPresets[0].balance);
   const [minQuantity, setMinQuantity] = useState(notepadPresets[0].minQuantity);
@@ -56,7 +56,6 @@ export function NotepadsCustomizePage({ onMenuClick }: NotepadsCustomizePageProp
               const preset = notepadPresets.find(p => p.measurement === draft.measurement);
               if (preset) {
                 setPads(preset.pads);
-                setInStock(preset.inStock);
                 setOrdered(preset.ordered);
                 setBalance(preset.balance);
                 setMinQuantity(preset.minQuantity);
@@ -171,12 +170,36 @@ export function NotepadsCustomizePage({ onMenuClick }: NotepadsCustomizePageProp
     }
   };
 
+  
+
+  // Fetch real-time stock
+  useEffect(() => {
+    const fetchStock = async () => {
+      try {
+        const response = await fetch('/api/v1/products');
+        const data = await response.json();
+        if (response.ok && data.success && data.data) {
+          const matched = data.data.find((p: any) => p.sku === 'NP-DESG');
+          if (matched && matched.stock !== undefined) {
+            setInStock(matched.stock);
+          } else {
+            setInStock('Unavailable');
+          }
+        } else {
+          setInStock('Error');
+        }
+      } catch (err) {
+        setInStock('Error');
+      }
+    };
+    fetchStock();
+  }, []);
+
   const handleMeasurementSelection = (value: string) => {
     setMeasurement(value);
     const preset = notepadPresets.find(p => p.measurement === value);
     if (preset) {
       setPads(preset.pads);
-      setInStock(preset.inStock);
       setOrdered(preset.ordered);
       setBalance(preset.balance);
       setMinQuantity(preset.minQuantity);

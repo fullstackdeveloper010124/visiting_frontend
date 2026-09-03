@@ -28,7 +28,7 @@ export function LetterheadsCustomizePage({ onMenuClick }: LetterheadsCustomizePa
   // Details state
   const [measurement, setMeasurement] = useState(letterheadPresets[0].measurement);
   const [reams, setReams] = useState(letterheadPresets[0].reams);
-  const [inStock, setInStock] = useState(letterheadPresets[0].inStock);
+  const [inStock, setInStock] = useState<string | number>('Loading...');
   const [ordered, setOrdered] = useState(letterheadPresets[0].ordered);
   const [balance, setBalance] = useState(letterheadPresets[0].balance);
   const [minQuantity, setMinQuantity] = useState(letterheadPresets[0].minQuantity);
@@ -64,7 +64,6 @@ export function LetterheadsCustomizePage({ onMenuClick }: LetterheadsCustomizePa
               const preset = letterheadPresets.find(p => p.measurement === draft.measurement);
               if (preset) {
                 setReams(preset.reams);
-                setInStock(preset.inStock);
                 setOrdered(preset.ordered);
                 setBalance(preset.balance);
                 setMinQuantity(preset.minQuantity);
@@ -186,12 +185,36 @@ export function LetterheadsCustomizePage({ onMenuClick }: LetterheadsCustomizePa
     }
   };
 
+  
+
+  // Fetch real-time stock
+  useEffect(() => {
+    const fetchStock = async () => {
+      try {
+        const response = await fetch('/api/v1/products');
+        const data = await response.json();
+        if (response.ok && data.success && data.data) {
+          const matched = data.data.find((p: any) => p.sku === 'LH-CORP');
+          if (matched && matched.stock !== undefined) {
+            setInStock(matched.stock);
+          } else {
+            setInStock('Unavailable');
+          }
+        } else {
+          setInStock('Error');
+        }
+      } catch (err) {
+        setInStock('Error');
+      }
+    };
+    fetchStock();
+  }, []);
+
   const handleMeasurementSelection = (value: string) => {
     setMeasurement(value);
     const preset = letterheadPresets.find(p => p.measurement === value);
     if (preset) {
       setReams(preset.reams);
-      setInStock(preset.inStock);
       setOrdered(preset.ordered);
       setBalance(preset.balance);
       setMinQuantity(preset.minQuantity);

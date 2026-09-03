@@ -107,7 +107,7 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
   // Product Configuration state
   const [measurement, setMeasurement] = useState(productPresets[0].measurement);
   const [reams, setReams] = useState(productPresets[0].reams);
-  const [inStock, setInStock] = useState(productPresets[0].inStock);
+  const [inStock, setInStock] = useState<string | number>('Loading...');
   const [ordered, setOrdered] = useState(productPresets[0].ordered);
   const [balance, setBalance] = useState(productPresets[0].balance);
   const [minQuantity, setMinQuantity] = useState(productPresets[0].minQuantity);
@@ -133,6 +133,29 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
   const [testApprovalUrl, setTestApprovalUrl] = useState('');
   const [draftStatus, setDraftStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const isLoadedRef = useRef(false);
+
+  // Fetch real-time stock
+  useEffect(() => {
+    const fetchStock = async () => {
+      try {
+        const response = await fetch('/api/v1/products');
+        const data = await response.json();
+        if (response.ok && data.success && data.data) {
+          const matched = data.data.find((p: any) => p.sku === 'BC-PREM');
+          if (matched && matched.stock !== undefined) {
+            setInStock(matched.stock);
+          } else {
+            setInStock('Unavailable');
+          }
+        } else {
+          setInStock('Error');
+        }
+      } catch (err) {
+        setInStock('Error');
+      }
+    };
+    fetchStock();
+  }, []);
 
   // Fetch Admin custom configurations on mount
   useEffect(() => {
@@ -349,7 +372,6 @@ export function CustomizePage({ onMenuClick, userRole }: CustomizePageProps) {
     const preset = productPresets.find(p => p.measurement === value);
     if (preset) {
       setReams(preset.reams);
-      setInStock(preset.inStock);
       setOrdered(preset.ordered);
       setBalance(preset.balance);
       setMinQuantity(preset.minQuantity);

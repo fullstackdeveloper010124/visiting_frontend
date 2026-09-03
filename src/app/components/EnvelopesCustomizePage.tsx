@@ -26,7 +26,7 @@ export function EnvelopesCustomizePage({ onMenuClick }: EnvelopesCustomizePagePr
   // Details state
   const [measurement, setMeasurement] = useState(envelopePresets[0].measurement);
   const [boxes, setBoxes] = useState(envelopePresets[0].boxes);
-  const [inStock, setInStock] = useState(envelopePresets[0].inStock);
+  const [inStock, setInStock] = useState<string | number>('Loading...');
   const [ordered, setOrdered] = useState(envelopePresets[0].ordered);
   const [balance, setBalance] = useState(envelopePresets[0].balance);
   const [minQuantity, setMinQuantity] = useState(envelopePresets[0].minQuantity);
@@ -64,7 +64,6 @@ export function EnvelopesCustomizePage({ onMenuClick }: EnvelopesCustomizePagePr
               const preset = envelopePresets.find(p => p.measurement === draft.measurement);
               if (preset) {
                 setBoxes(preset.boxes);
-                setInStock(preset.inStock);
                 setOrdered(preset.ordered);
                 setBalance(preset.balance);
                 setMinQuantity(preset.minQuantity);
@@ -182,12 +181,36 @@ export function EnvelopesCustomizePage({ onMenuClick }: EnvelopesCustomizePagePr
     }
   };
 
+  
+
+  // Fetch real-time stock
+  useEffect(() => {
+    const fetchStock = async () => {
+      try {
+        const response = await fetch('/api/v1/products');
+        const data = await response.json();
+        if (response.ok && data.success && data.data) {
+          const matched = data.data.find((p: any) => p.sku === 'EV-PROF');
+          if (matched && matched.stock !== undefined) {
+            setInStock(matched.stock);
+          } else {
+            setInStock('Unavailable');
+          }
+        } else {
+          setInStock('Error');
+        }
+      } catch (err) {
+        setInStock('Error');
+      }
+    };
+    fetchStock();
+  }, []);
+
   const handleMeasurementSelection = (value: string) => {
     setMeasurement(value);
     const preset = envelopePresets.find(p => p.measurement === value);
     if (preset) {
       setBoxes(preset.boxes);
-      setInStock(preset.inStock);
       setOrdered(preset.ordered);
       setBalance(preset.balance);
       setMinQuantity(preset.minQuantity);
